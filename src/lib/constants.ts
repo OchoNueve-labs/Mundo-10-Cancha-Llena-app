@@ -30,7 +30,7 @@ export const CENTROS = {
         tipo: "Padel" as const,
         cantidad: 3,
         nombres: ["Cancha 1", "Cancha 2", "Cancha 3"],
-        horario: { inicio: "08:30", fin: "23:00" },
+        horario: { inicio: "08:30", fin: "24:00" },
         intervalo: 30,
         duraciones: [60, 90, 120],
       },
