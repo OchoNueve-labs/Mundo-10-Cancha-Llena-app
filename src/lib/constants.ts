@@ -12,7 +12,7 @@ export const CENTROS = {
           "Cancha 5",
           "Cancha 6",
         ],
-        horario: { inicio: "09:00", fin: "23:00" },
+        horario: { inicio: "09:00", fin: "24:00" },
         intervalo: 60,
       },
     ],
@@ -23,7 +23,7 @@ export const CENTROS = {
         tipo: "Futbolito" as const,
         cantidad: 4,
         nombres: ["Cancha 1", "Cancha 2", "Cancha 3", "Cancha 4"],
-        horario: { inicio: "08:00", fin: "23:00" },
+        horario: { inicio: "08:00", fin: "24:00" },
         intervalo: 60,
       },
       {
