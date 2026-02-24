@@ -1,0 +1,5 @@
+centro,tipo_cancha,cancha,fecha,hora,nombre_cliente,telefono_cliente,estado,canal_origen,origen,codigo_easycancha,notas
+Lo Prado,Futbolito,Cancha 1,2026-03-01,14:00:00,Juan Perez,+56912345678,confirmada,easycancha,import_inicial,EC-001,
+Lo Prado,Futbolito,Cancha 3,2026-03-01,18:00:00,Maria Lopez,,confirmada,easycancha,import_inicial,,
+Quilicura,Futbolito,Cancha 2,2026-03-01,10:00:00,Pedro Soto,+56987654321,confirmada,presencial,import_inicial,,Reserva telefonica
+Quilicura,Padel,Cancha 1,2026-03-02,09:30:00,Ana Torres,,pendiente,easycancha,import_inicial,EC-055,
