@@ -30,6 +30,7 @@ export interface Reserva {
   canal_origen: "bot" | "easycancha" | "telefono" | "presencial" | "dashboard" | null;
   codigo_easycancha: string | null;
   origen: string;
+  duracion: number | null;
   notas: string | null;
   created_at: string;
 }

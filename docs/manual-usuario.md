@@ -155,12 +155,13 @@ A la derecha de los filtros veras el total de reservas que coinciden.
 1. Haz click en el boton **"Nueva Reserva"** (icono + arriba a la derecha)
 2. Selecciona el **centro** y **tipo de cancha**
 3. Selecciona la **cancha** especifica
-4. Elige la **fecha** (hoy o futura)
-5. Elige la **hora** — solo se muestran las horas que estan disponibles
-6. Ingresa el **nombre del cliente** (obligatorio)
-7. Ingresa el **telefono** (obligatorio)
-8. Opcionalmente agrega notas
-9. Haz click en **"Crear Reserva"**
+4. Si es **Padel en Quilicura**, selecciona la **duracion** (60, 90 o 120 minutos)
+5. Elige la **fecha** (hoy o futura)
+6. Elige la **hora** — solo se muestran las horas que tienen suficientes slots consecutivos disponibles para la duracion seleccionada
+7. Ingresa el **nombre del cliente** (obligatorio)
+8. Ingresa el **telefono** (obligatorio)
+9. Opcionalmente agrega notas
+10. Haz click en **"Crear Reserva"**
 
 Veras un mensaje de confirmacion y la reserva aparecera en la tabla.
 
@@ -168,7 +169,7 @@ Veras un mensaje de confirmacion y la reserva aparecera en la tabla.
 
 | Columna | Que muestra |
 |---------|-------------|
-| **Hora** | La hora de la reserva |
+| **Hora** | La hora de la reserva (para Padel, muestra la duracion si es mayor a 60 min) |
 | **Cliente** | Nombre y telefono del cliente |
 | **Centro** | Lo Prado o Quilicura |
 | **Cancha** | Tipo y numero de cancha |
@@ -323,7 +324,7 @@ Al final de la barra lateral (en computador) o del menu (en celular), encontrara
 |--------|------|---------|---------|
 | Lo Prado | Futbolito | Cancha 1 a Cancha 6 | 09:00 a 23:00 |
 | Quilicura | Futbolito | Cancha 1 a Cancha 4 | 08:00 a 23:00 |
-| Quilicura | Padel | Cancha 1 a Cancha 3 | 08:30 a 23:00 |
+| Quilicura | Padel | Cancha 1 a Cancha 3 | 08:30 a 23:00 (intervalos de 30 min, duraciones de 60/90/120 min) |
 
 ### Tips utiles
 

@@ -38,6 +38,27 @@ function todayStr() {
   return `${year}-${month}-${day}`;
 }
 
+/** Calculate the N consecutive slot times needed for a given duration */
+function getConsecutiveSlotTimes(
+  startHora: string,
+  duracion: number,
+  intervalo: number
+): string[] {
+  const slotsNeeded = duracion / intervalo;
+  const [h, m] = startHora.split(":").map(Number);
+  const startMin = h * 60 + m;
+  const times: string[] = [];
+  for (let i = 0; i < slotsNeeded; i++) {
+    const totalMin = startMin + i * intervalo;
+    const hh = Math.floor(totalMin / 60)
+      .toString()
+      .padStart(2, "0");
+    const mm = (totalMin % 60).toString().padStart(2, "0");
+    times.push(`${hh}:${mm}`);
+  }
+  return times;
+}
+
 export function NuevaReservaDialog({
   open,
   onOpenChange,
@@ -57,6 +78,7 @@ export function NuevaReservaDialog({
   const [cancha, setCancha] = useState(initialData?.cancha || "");
   const [fecha, setFecha] = useState(initialData?.fecha || todayStr());
   const [hora, setHora] = useState(initialData?.hora || "");
+  const [duracion, setDuracion] = useState(60);
   const [nombreCliente, setNombreCliente] = useState("");
   const [telefonoCliente, setTelefonoCliente] = useState("");
   const [notas, setNotas] = useState("");
@@ -74,6 +96,7 @@ export function NuevaReservaDialog({
       setCancha(initialData?.cancha || "");
       setFecha(initialData?.fecha || todayStr());
       setHora(initialData?.hora || "");
+      setDuracion(60);
       setNombreCliente("");
       setTelefonoCliente("");
       setNotas("");
@@ -90,6 +113,14 @@ export function NuevaReservaDialog({
     return CENTROS[centro].canchas.find((c) => c.tipo === tipoCancha);
   }, [centro, tipoCancha]);
 
+  // Derived: duraciones disponibles (undefined = single fixed duration)
+  const duracionesDisponibles = useMemo(() => {
+    if (!canchaConfig) return undefined;
+    return "duraciones" in canchaConfig
+      ? (canchaConfig as { duraciones: readonly number[] }).duraciones
+      : undefined;
+  }, [canchaConfig]);
+
   // Derived: nombres de canchas
   const canchaNames = useMemo((): string[] => {
     return canchaConfig ? Array.from(canchaConfig.nombres) : [];
@@ -105,10 +136,22 @@ export function NuevaReservaDialog({
     );
   }, [canchaConfig]);
 
-  // Derived: time slots disponibles (filtrado por ocupados)
+  // Derived: time slots disponibles (filtrado por ocupados y slots consecutivos)
   const horasDisponibles = useMemo(() => {
-    return allTimeSlots.filter((h) => !horasOcupadas.has(h));
-  }, [allTimeSlots, horasOcupadas]);
+    if (!canchaConfig) return [];
+    const intervalo = canchaConfig.intervalo;
+    const slotsNeeded = duracion / intervalo;
+
+    return allTimeSlots.filter((h) => {
+      // Check that this start time + N consecutive slots are all available
+      const consecutiveSlots = getConsecutiveSlotTimes(h, duracion, intervalo);
+      // All consecutive slots must exist in allTimeSlots and not be occupied
+      return consecutiveSlots.every(
+        (slotTime) =>
+          allTimeSlots.includes(slotTime) && !horasOcupadas.has(slotTime)
+      );
+    });
+  }, [allTimeSlots, horasOcupadas, canchaConfig, duracion]);
 
   // Reset tipo_cancha si no esta disponible en el centro
   useEffect(() => {
@@ -123,6 +166,15 @@ export function NuevaReservaDialog({
       setCancha("");
     }
   }, [canchaNames, cancha]);
+
+  // Reset duracion when tipo changes and duraciones are not available
+  useEffect(() => {
+    if (!duracionesDisponibles) {
+      setDuracion(canchaConfig?.intervalo ?? 60);
+    } else if (!duracionesDisponibles.includes(duracion)) {
+      setDuracion(duracionesDisponibles[0]);
+    }
+  }, [duracionesDisponibles, canchaConfig, duracion]);
 
   // Fetch horas ocupadas cuando cambia centro/tipo/cancha/fecha
   const fetchHorasOcupadas = useCallback(async () => {
@@ -156,10 +208,10 @@ export function NuevaReservaDialog({
 
   // Reset hora si ya no esta disponible
   useEffect(() => {
-    if (hora && horasOcupadas.has(hora)) {
+    if (hora && !horasDisponibles.includes(hora)) {
       setHora("");
     }
-  }, [horasOcupadas, hora]);
+  }, [horasDisponibles, hora]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -194,27 +246,46 @@ export function NuevaReservaDialog({
 
     setLoading(true);
 
+    const intervalo = canchaConfig?.intervalo ?? 60;
+    const slotTimes = getConsecutiveSlotTimes(hora, duracion, intervalo);
+
     try {
-      // Verificar que el slot sigue disponible
-      const { data: slotCheck } = await supabase
+      // Verificar que todos los slots consecutivos siguen disponibles
+      const { data: slotChecks } = await supabase
         .from("slots")
-        .select("id, estado")
+        .select("id, hora, estado")
         .eq("centro", centro)
         .eq("tipo_cancha", tipoCancha)
         .eq("cancha", cancha)
         .eq("fecha", fecha)
-        .eq("hora", `${hora}:00`)
-        .single();
+        .in(
+          "hora",
+          slotTimes.map((t) => `${t}:00`)
+        );
 
-      if (slotCheck && slotCheck.estado !== "disponible") {
+      const unavailable = (slotChecks || []).filter(
+        (s: { estado: string }) => s.estado !== "disponible"
+      );
+      if (unavailable.length > 0) {
         toast({
           title: "Horario no disponible",
           description:
-            "Este horario fue reservado por alguien mas. Selecciona otro.",
+            "Uno o mas slots fueron reservados por alguien mas. Selecciona otro horario.",
           variant: "destructive",
         });
         setLoading(false);
         fetchHorasOcupadas();
+        return;
+      }
+
+      if ((slotChecks || []).length < slotTimes.length) {
+        toast({
+          title: "Slots insuficientes",
+          description:
+            "No existen suficientes slots para la duracion seleccionada en este horario.",
+          variant: "destructive",
+        });
+        setLoading(false);
         return;
       }
 
@@ -227,6 +298,7 @@ export function NuevaReservaDialog({
           cancha,
           fecha,
           hora: `${hora}:00`,
+          duracion,
           nombre_cliente: nombreCliente.trim(),
           telefono_cliente: telefonoCliente.trim(),
           estado: "pendiente",
@@ -247,7 +319,7 @@ export function NuevaReservaDialog({
         return;
       }
 
-      // 2. Actualizar slot
+      // 2. Actualizar todos los slots consecutivos
       const { error: updateError } = await supabase
         .from("slots")
         .update({
@@ -262,7 +334,10 @@ export function NuevaReservaDialog({
         .eq("tipo_cancha", tipoCancha)
         .eq("cancha", cancha)
         .eq("fecha", fecha)
-        .eq("hora", `${hora}:00`);
+        .in(
+          "hora",
+          slotTimes.map((t) => `${t}:00`)
+        );
 
       if (updateError) {
         // Rollback: borrar la reserva creada
@@ -276,9 +351,10 @@ export function NuevaReservaDialog({
         return;
       }
 
+      const durLabel = duracion > 60 ? ` (${duracion} min)` : "";
       toast({
         title: "Reserva creada",
-        description: `${cancha} a las ${hora} para ${nombreCliente.trim()}`,
+        description: `${cancha} a las ${hora}${durLabel} para ${nombreCliente.trim()}`,
       });
 
       onOpenChange(false);
@@ -343,21 +419,44 @@ export function NuevaReservaDialog({
             </div>
           </div>
 
-          {/* Cancha */}
-          <div>
-            <label className={labelClass}>Cancha</label>
-            <select
-              value={cancha}
-              onChange={(e) => setCancha(e.target.value)}
-              className={selectClass}
-            >
-              <option value="">Seleccionar cancha...</option>
-              {canchaNames.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </select>
+          {/* Cancha y Duracion */}
+          <div
+            className={
+              duracionesDisponibles ? "grid grid-cols-2 gap-3" : undefined
+            }
+          >
+            <div>
+              <label className={labelClass}>Cancha</label>
+              <select
+                value={cancha}
+                onChange={(e) => setCancha(e.target.value)}
+                className={selectClass}
+              >
+                <option value="">Seleccionar cancha...</option>
+                {canchaNames.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {duracionesDisponibles && (
+              <div>
+                <label className={labelClass}>Duracion</label>
+                <select
+                  value={duracion}
+                  onChange={(e) => setDuracion(Number(e.target.value))}
+                  className={selectClass}
+                >
+                  {duracionesDisponibles.map((d) => (
+                    <option key={d} value={d}>
+                      {d} min
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
 
           {/* Fecha y Hora */}

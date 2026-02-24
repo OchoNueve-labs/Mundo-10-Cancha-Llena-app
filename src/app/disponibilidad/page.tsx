@@ -153,8 +153,20 @@ export default function DisponibilidadPage() {
       });
       setDialogOpen(true);
     } else if (slot.estado === "reservado") {
+      // Calculate duration from consecutive slots with same reserva_id
+      let duracionMin = canchaConfig?.intervalo ?? 60;
+      if (slot.reserva_id) {
+        const sameReserva = slots.filter(
+          (s) => s.cancha === cancha && s.reserva_id === slot.reserva_id
+        );
+        duracionMin = sameReserva.length * (canchaConfig?.intervalo ?? 60);
+      }
+      const durLabel =
+        duracionMin > (canchaConfig?.intervalo ?? 60)
+          ? `\nDuracion: ${duracionMin} min`
+          : "";
       window.alert(
-        `Reserva existente:\n\nCancha: ${cancha}\nHora: ${hora}\nFecha: ${fecha}\nCliente: ${slot.cliente_nombre || "Sin nombre"}\nTelefono: ${slot.cliente_telefono || "—"}\nReserva ID: ${slot.reserva_id || "—"}`
+        `Reserva existente:\n\nCancha: ${cancha}\nHora: ${hora}\nFecha: ${fecha}\nCliente: ${slot.cliente_nombre || "Sin nombre"}\nTelefono: ${slot.cliente_telefono || "—"}\nReserva ID: ${slot.reserva_id || "—"}${durLabel}`
       );
     } else {
       window.alert(

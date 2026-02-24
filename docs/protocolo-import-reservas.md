@@ -36,7 +36,8 @@ Guia paso a paso para cargar reservas existentes (EasyCancha + manuales) en Supa
 - **hora** (horas validas por tipo):
   - Lo Prado Futbolito: `09:00:00`, `10:00:00`, ... `22:00:00`
   - Quilicura Futbolito: `08:00:00`, `09:00:00`, ... `22:00:00`
-  - Quilicura Padel: `08:30:00`, `09:30:00`, ... `22:30:00` (siempre en :30)
+  - Quilicura Padel: `08:30:00`, `09:00:00`, `09:30:00`, `10:00:00`, ... `22:30:00` (intervalos de 30 min)
+- **duracion** (solo para Padel en Quilicura): `60`, `90`, o `120` (minutos). Default: `60`
 - **estado**: `confirmada` (default para reservas existentes), `pendiente`
 - **canal_origen**: `easycancha`, `presencial`, `telefono`, `dashboard`, `bot`
 
@@ -52,7 +53,7 @@ Para todas las filas, usar:
 1. En Google Sheets: Archivo > Descargar > Valores separados por comas (.csv)
 2. En Excel: Guardar como > CSV UTF-8
 
-> **IMPORTANTE**: Las horas de Padel en Quilicura siempre terminan en `:30` (ej: `08:30:00`, `09:30:00`). Las demas canchas usan horas completas (ej: `09:00:00`, `10:00:00`).
+> **IMPORTANTE**: Las horas de Padel en Quilicura usan intervalos de 30 minutos (ej: `08:30:00`, `09:00:00`, `09:30:00`). Las demas canchas usan horas completas (ej: `09:00:00`, `10:00:00`). Para reservas de 90 o 120 min, la hora indica el inicio de la reserva.
 
 ---
 
@@ -100,11 +101,18 @@ BEGIN
       END LOOP;
     END LOOP;
 
-    -- QUILICURA - Padel (3 canchas, 08:30-22:30)
+    -- QUILICURA - Padel (3 canchas, 08:30-22:30, intervalos de 30 min)
     FOR cancha_num IN 1..3 LOOP
+      -- Slots en :30 (08:30, 09:30, ..., 22:30)
       FOR h IN 8..22 LOOP
         INSERT INTO slots (centro, tipo_cancha, cancha, fecha, hora, duracion, estado)
-        VALUES ('Quilicura', 'Padel', 'Cancha ' || cancha_num, d, make_time(h, 30, 0), 60, 'disponible')
+        VALUES ('Quilicura', 'Padel', 'Cancha ' || cancha_num, d, make_time(h, 30, 0), 30, 'disponible')
+        ON CONFLICT (centro, tipo_cancha, cancha, fecha, hora) DO NOTHING;
+      END LOOP;
+      -- Slots en :00 (09:00, 10:00, ..., 22:00)
+      FOR h IN 9..22 LOOP
+        INSERT INTO slots (centro, tipo_cancha, cancha, fecha, hora, duracion, estado)
+        VALUES ('Quilicura', 'Padel', 'Cancha ' || cancha_num, d, make_time(h, 0, 0), 30, 'disponible')
         ON CONFLICT (centro, tipo_cancha, cancha, fecha, hora) DO NOTHING;
       END LOOP;
     END LOOP;
@@ -131,8 +139,8 @@ ORDER BY centro, tipo_cancha;
 |--------|------|---------|-------------|-----------|
 | Lo Prado | Futbolito | 6 | 14 | 84 |
 | Quilicura | Futbolito | 4 | 15 | 60 |
-| Quilicura | Padel | 3 | 15 | 45 |
-| **Total** | | **13** | | **189** |
+| Quilicura | Padel | 3 | 29 | 87 |
+| **Total** | | **13** | | **231** |
 
 ---
 

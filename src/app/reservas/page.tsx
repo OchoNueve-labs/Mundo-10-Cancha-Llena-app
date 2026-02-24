@@ -151,16 +151,18 @@ export default function ReservasPage() {
       return;
     }
 
-    // Free the slot
-    if (reserva.fecha && reserva.hora && reserva.cancha && reserva.centro) {
-      await supabase
-        .from("slots")
-        .update({ estado: "disponible", reserva_id: null, nombre_cliente: null, telefono_cliente: null })
-        .eq("fecha", reserva.fecha)
-        .eq("hora", reserva.hora)
-        .eq("cancha", reserva.cancha)
-        .eq("centro", reserva.centro);
-    }
+    // Free all slots linked to this reservation (supports multi-slot bookings)
+    await supabase
+      .from("slots")
+      .update({
+        estado: "disponible",
+        reserva_id: null,
+        origen: null,
+        cliente_nombre: null,
+        cliente_telefono: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("reserva_id", String(reserva.id));
   };
 
   return (
@@ -293,6 +295,11 @@ export default function ReservasPage() {
                   >
                     <td className="px-3 py-2.5 text-sm font-mono text-foreground">
                       {reserva.hora?.substring(0, 5) || "—"}
+                      {reserva.duracion && reserva.duracion > 60 && (
+                        <span className="ml-1.5 text-xs text-muted-foreground font-sans">
+                          {reserva.duracion}min
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-2.5">
                       <div>
