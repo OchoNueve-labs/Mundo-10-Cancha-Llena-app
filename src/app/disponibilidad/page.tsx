@@ -153,6 +153,20 @@ export default function DisponibilidadPage() {
   const fetchSlots = useCallback(async () => {
     setLoading(true);
 
+    // Build reservas query — handle accent variants (bot may insert "Pádel" instead of "Padel")
+    let reservasQuery = supabase
+      .from("reservas")
+      .select("*")
+      .eq("fecha", fecha)
+      .eq("centro", centro)
+      .in("estado", ["pendiente", "confirmada"]);
+
+    if (tipoCancha === "Padel") {
+      reservasQuery = reservasQuery.in("tipo_cancha", ["Padel", "Pádel"]);
+    } else {
+      reservasQuery = reservasQuery.eq("tipo_cancha", tipoCancha);
+    }
+
     const [slotsRes, reservasRes] = await Promise.all([
       supabase
         .from("slots")
@@ -160,13 +174,7 @@ export default function DisponibilidadPage() {
         .eq("fecha", fecha)
         .eq("centro", centro)
         .eq("tipo_cancha", tipoCancha),
-      supabase
-        .from("reservas")
-        .select("*")
-        .eq("fecha", fecha)
-        .eq("centro", centro)
-        .eq("tipo_cancha", tipoCancha)
-        .in("estado", ["pendiente", "confirmada"]),
+      reservasQuery,
     ]);
 
     if (!slotsRes.error) {
