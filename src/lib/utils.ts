@@ -40,6 +40,18 @@ export function getWhatsAppLink(phone: string): string {
   return `https://wa.me/${cleaned}`;
 }
 
+/** Normalize cancha name variants ("1", "cancha 2", "Cancha1") → "Cancha 1" */
+export function normalizeCancha(raw: string): string {
+  if (!raw) return raw;
+  const trimmed = raw.trim();
+  if (/^Cancha \d+$/.test(trimmed)) return trimmed;
+  const numOnly = trimmed.match(/^(\d+)$/);
+  if (numOnly) return `Cancha ${numOnly[1]}`;
+  const canchaNum = trimmed.match(/^cancha\s*(\d+)$/i);
+  if (canchaNum) return `Cancha ${canchaNum[1]}`;
+  return trimmed;
+}
+
 export function generateTimeSlots(inicio: string, fin: string, intervalo: number): string[] {
   const slots: string[] = [];
   const [startH, startM] = inicio.split(":").map(Number);

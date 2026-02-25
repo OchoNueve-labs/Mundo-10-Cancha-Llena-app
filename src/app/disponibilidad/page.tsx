@@ -10,9 +10,9 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { AppShell } from "@/components/layout/AppShell";
 import { Header } from "@/components/layout/Header";
-import { cn, generateTimeSlots } from "@/lib/utils";
+import { cn, generateTimeSlots, normalizeCancha } from "@/lib/utils";
 import { CENTROS, type CentroName, type TipoCancha } from "@/lib/constants";
-import type { Slot } from "@/lib/types";
+import type { Slot, Reserva } from "@/lib/types";
 import {
   NuevaReservaDialog,
   type NuevaReservaInitial,
@@ -49,6 +49,7 @@ export default function DisponibilidadPage() {
 
   // Data
   const [slots, setSlots] = useState<Slot[]>([]);
+  const [reservas, setReservas] = useState<Reserva[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Derived: available tipos for selected centro
@@ -84,15 +85,60 @@ export default function DisponibilidadPage() {
   }, [canchaConfig]);
 
   // Slot lookup map: key = "HH:MM|CanchaName"
+  // Reconciles slots with reservas: overlays active reservas that have no matching "reservado" slot
   const slotMap = useMemo(() => {
     const map = new Map<string, Slot>();
+
+    // Primary source: actual slot records
     for (const slot of slots) {
       const hora = slot.hora?.substring(0, 5) ?? "";
       const key = `${hora}|${slot.cancha}`;
       map.set(key, slot);
     }
+
+    // Reconciliation: overlay reservas without matching reservado slots
+    const intervalo = canchaConfig?.intervalo ?? 60;
+    for (const reserva of reservas) {
+      const canchaName = normalizeCancha(reserva.cancha);
+      const horaStart = reserva.hora?.substring(0, 5) ?? "";
+      const duracion = reserva.duracion ?? intervalo;
+      const slotsNeeded = Math.max(1, Math.floor(duracion / intervalo));
+
+      const [h, m] = horaStart.split(":").map(Number);
+      const startMin = h * 60 + m;
+
+      for (let i = 0; i < slotsNeeded; i++) {
+        const totalMin = startMin + i * intervalo;
+        const hh = Math.floor(totalMin / 60).toString().padStart(2, "0");
+        const mm = (totalMin % 60).toString().padStart(2, "0");
+        const slotHora = `${hh}:${mm}`;
+        const key = `${slotHora}|${canchaName}`;
+
+        const existing = map.get(key);
+        if (!existing || existing.estado === "disponible") {
+          map.set(key, {
+            id: `virtual-${reserva.id}-${i}`,
+            centro: reserva.centro,
+            tipo_cancha: reserva.tipo_cancha,
+            cancha: canchaName,
+            fecha: reserva.fecha,
+            hora: `${slotHora}:00`,
+            duracion: intervalo,
+            estado: "reservado",
+            reserva_id: String(reserva.id),
+            origen: reserva.canal_origen,
+            cliente_nombre: reserva.nombre_cliente,
+            cliente_telefono: reserva.telefono_cliente,
+            notas: reserva.notas,
+            created_at: reserva.created_at,
+            updated_at: reserva.created_at,
+          } as Slot);
+        }
+      }
+    }
+
     return map;
-  }, [slots]);
+  }, [slots, reservas, canchaConfig]);
 
   // Current hour for highlight
   const currentHour = useMemo(() => {
@@ -107,15 +153,27 @@ export default function DisponibilidadPage() {
   const fetchSlots = useCallback(async () => {
     setLoading(true);
 
-    const { data, error } = await supabase
-      .from("slots")
-      .select("*")
-      .eq("fecha", fecha)
-      .eq("centro", centro)
-      .eq("tipo_cancha", tipoCancha);
+    const [slotsRes, reservasRes] = await Promise.all([
+      supabase
+        .from("slots")
+        .select("*")
+        .eq("fecha", fecha)
+        .eq("centro", centro)
+        .eq("tipo_cancha", tipoCancha),
+      supabase
+        .from("reservas")
+        .select("*")
+        .eq("fecha", fecha)
+        .eq("centro", centro)
+        .eq("tipo_cancha", tipoCancha)
+        .in("estado", ["pendiente", "confirmada"]),
+    ]);
 
-    if (!error) {
-      setSlots((data as Slot[]) || []);
+    if (!slotsRes.error) {
+      setSlots((slotsRes.data as Slot[]) || []);
+    }
+    if (!reservasRes.error) {
+      setReservas((reservasRes.data as Reserva[]) || []);
     }
     setLoading(false);
   }, [supabase, fecha, centro, tipoCancha]);
@@ -123,6 +181,37 @@ export default function DisponibilidadPage() {
   useEffect(() => {
     fetchSlots();
   }, [fetchSlots]);
+
+  // Realtime: auto-refresh when reservas or slots change (e.g. bot creates a reservation)
+  useEffect(() => {
+    const channel = supabase
+      .channel("disponibilidad-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "reservas" },
+        () => fetchSlots()
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "reservas" },
+        () => fetchSlots()
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "slots" },
+        () => fetchSlots()
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "slots" },
+        () => fetchSlots()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, fetchSlots]);
 
   // Summary stats
   const totalSlots = timeSlots.length * canchaNames.length;
@@ -153,13 +242,14 @@ export default function DisponibilidadPage() {
       });
       setDialogOpen(true);
     } else if (slot.estado === "reservado") {
-      // Calculate duration from consecutive slots with same reserva_id
+      // Calculate duration from consecutive slots with same reserva_id (includes virtual entries)
       let duracionMin = canchaConfig?.intervalo ?? 60;
       if (slot.reserva_id) {
-        const sameReserva = slots.filter(
-          (s) => s.cancha === cancha && s.reserva_id === slot.reserva_id
-        );
-        duracionMin = sameReserva.length * (canchaConfig?.intervalo ?? 60);
+        let count = 0;
+        for (const [, s] of slotMap) {
+          if (s.cancha === cancha && s.reserva_id === slot.reserva_id) count++;
+        }
+        duracionMin = count * (canchaConfig?.intervalo ?? 60);
       }
       const durLabel =
         duracionMin > (canchaConfig?.intervalo ?? 60)
