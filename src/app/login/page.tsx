@@ -40,6 +40,9 @@ export default function LoginPage() {
           <p className="text-sm text-muted-foreground">
             Centro de Mando
           </p>
+          <p className="text-xs text-muted-foreground/70 mt-1">
+            Sistema Cancha Llena™
+          </p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
@@ -93,6 +96,10 @@ export default function LoginPage() {
             {loading ? "Ingresando..." : "Ingresar"}
           </button>
         </form>
+
+        <p className="text-center text-[11px] text-muted-foreground/50 mt-8">
+          Powered by OchoNueve Labs
+        </p>
       </div>
     </div>
   );
