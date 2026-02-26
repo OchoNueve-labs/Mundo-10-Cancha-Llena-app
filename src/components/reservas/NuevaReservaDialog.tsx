@@ -21,13 +21,19 @@ export interface NuevaReservaInitial {
   cancha?: string;
   fecha?: string;
   hora?: string;
+  nombre_cliente?: string;
+  telefono_cliente?: string;
+  notas?: string;
+  duracion?: number;
 }
 
 interface NuevaReservaDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialData?: NuevaReservaInitial;
+  editReservaId?: number | null;
   onCreated?: () => void;
+  onUpdated?: () => void;
 }
 
 function todayStr() {
@@ -63,8 +69,11 @@ export function NuevaReservaDialog({
   open,
   onOpenChange,
   initialData,
+  editReservaId,
   onCreated,
+  onUpdated,
 }: NuevaReservaDialogProps) {
+  const isEditing = !!editReservaId;
   const supabase = createClient();
   const { toast } = useToast();
 
@@ -96,10 +105,10 @@ export function NuevaReservaDialog({
       setCancha(initialData?.cancha || "");
       setFecha(initialData?.fecha || todayStr());
       setHora(initialData?.hora || "");
-      setDuracion(60);
-      setNombreCliente("");
-      setTelefonoCliente("");
-      setNotas("");
+      setDuracion(initialData?.duracion || 60);
+      setNombreCliente(initialData?.nombre_cliente || "");
+      setTelefonoCliente(initialData?.telefono_cliente || "");
+      setNotas(initialData?.notas || "");
     }
   }, [open, initialData]);
 
@@ -184,7 +193,7 @@ export function NuevaReservaDialog({
     }
 
     setLoadingHoras(true);
-    const { data } = await supabase
+    let query = supabase
       .from("slots")
       .select("hora")
       .eq("centro", centro)
@@ -193,12 +202,19 @@ export function NuevaReservaDialog({
       .eq("fecha", fecha)
       .neq("estado", "disponible");
 
+    // When editing, exclude slots that belong to the current reservation
+    if (editReservaId) {
+      query = query.neq("reserva_id", String(editReservaId));
+    }
+
+    const { data } = await query;
+
     const ocupadas = new Set(
       (data || []).map((s: { hora: string }) => s.hora.substring(0, 5))
     );
     setHorasOcupadas(ocupadas);
     setLoadingHoras(false);
-  }, [supabase, centro, tipoCancha, cancha, fecha]);
+  }, [supabase, centro, tipoCancha, cancha, fecha, editReservaId]);
 
   useEffect(() => {
     if (open) {
@@ -250,119 +266,215 @@ export function NuevaReservaDialog({
     const slotTimes = getConsecutiveSlotTimes(hora, duracion, intervalo);
 
     try {
-      // Verificar que todos los slots consecutivos siguen disponibles
-      const { data: slotChecks } = await supabase
-        .from("slots")
-        .select("id, hora, estado")
-        .eq("centro", centro)
-        .eq("tipo_cancha", tipoCancha)
-        .eq("cancha", cancha)
-        .eq("fecha", fecha)
-        .in(
-          "hora",
-          slotTimes.map((t) => `${t}:00`)
+      if (isEditing) {
+        // --- EDIT MODE ---
+        // 1. Free old slots
+        await supabase
+          .from("slots")
+          .update({
+            estado: "disponible",
+            reserva_id: null,
+            origen: null,
+            cliente_nombre: null,
+            cliente_telefono: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("reserva_id", String(editReservaId));
+
+        // 2. Verify new slots are available
+        const { data: slotChecks } = await supabase
+          .from("slots")
+          .select("id, hora, estado")
+          .eq("centro", centro)
+          .eq("tipo_cancha", tipoCancha)
+          .eq("cancha", cancha)
+          .eq("fecha", fecha)
+          .in("hora", slotTimes.map((t) => `${t}:00`));
+
+        const unavailable = (slotChecks || []).filter(
+          (s: { estado: string }) => s.estado !== "disponible"
         );
+        if (unavailable.length > 0 || (slotChecks || []).length < slotTimes.length) {
+          // Rollback: re-lock old slots (best effort — realtime will fix)
+          toast({
+            title: "Horario no disponible",
+            description: "Selecciona otro horario. Los slots fueron ocupados.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          fetchHorasOcupadas();
+          return;
+        }
 
-      const unavailable = (slotChecks || []).filter(
-        (s: { estado: string }) => s.estado !== "disponible"
-      );
-      if (unavailable.length > 0) {
+        // 3. Update reserva
+        const { error: updateReservaError } = await supabase
+          .from("reservas")
+          .update({
+            centro,
+            tipo_cancha: tipoCancha,
+            cancha,
+            fecha,
+            hora: `${hora}:00`,
+            duracion,
+            nombre_cliente: nombreCliente.trim(),
+            telefono_cliente: telefonoCliente.trim(),
+            notas: notas.trim() || null,
+          })
+          .eq("id", editReservaId);
+
+        if (updateReservaError) {
+          toast({
+            title: "Error al actualizar reserva",
+            description: updateReservaError.message,
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+
+        // 4. Lock new slots
+        await supabase
+          .from("slots")
+          .update({
+            estado: "reservado",
+            reserva_id: String(editReservaId),
+            origen: "dashboard",
+            cliente_nombre: nombreCliente.trim(),
+            cliente_telefono: telefonoCliente.trim(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("centro", centro)
+          .eq("tipo_cancha", tipoCancha)
+          .eq("cancha", cancha)
+          .eq("fecha", fecha)
+          .in("hora", slotTimes.map((t) => `${t}:00`));
+
+        const durLabel = duracion > 60 ? ` (${duracion} min)` : "";
         toast({
-          title: "Horario no disponible",
-          description:
-            "Uno o mas slots fueron reservados por alguien mas. Selecciona otro horario.",
-          variant: "destructive",
+          title: "Reserva actualizada",
+          description: `${cancha} a las ${hora}${durLabel} para ${nombreCliente.trim()}`,
         });
-        setLoading(false);
-        fetchHorasOcupadas();
-        return;
-      }
 
-      if ((slotChecks || []).length < slotTimes.length) {
-        toast({
-          title: "Slots insuficientes",
-          description:
-            "No existen suficientes slots para la duracion seleccionada en este horario.",
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
+        onOpenChange(false);
+        onUpdated?.();
+      } else {
+        // --- CREATE MODE ---
+        // Verificar que todos los slots consecutivos siguen disponibles
+        const { data: slotChecks } = await supabase
+          .from("slots")
+          .select("id, hora, estado")
+          .eq("centro", centro)
+          .eq("tipo_cancha", tipoCancha)
+          .eq("cancha", cancha)
+          .eq("fecha", fecha)
+          .in(
+            "hora",
+            slotTimes.map((t) => `${t}:00`)
+          );
 
-      // 1. Crear reserva
-      const { data: newReserva, error: insertError } = await supabase
-        .from("reservas")
-        .insert({
-          centro,
-          tipo_cancha: tipoCancha,
-          cancha,
-          fecha,
-          hora: `${hora}:00`,
-          duracion,
-          nombre_cliente: nombreCliente.trim(),
-          telefono_cliente: telefonoCliente.trim(),
-          estado: "pendiente",
-          canal_origen: "dashboard",
-          origen: "dashboard",
-          notas: notas.trim() || null,
-        })
-        .select()
-        .single();
-
-      if (insertError) {
-        toast({
-          title: "Error al crear reserva",
-          description: insertError.message,
-          variant: "destructive",
-        });
-        setLoading(false);
-        return;
-      }
-
-      // 2. Actualizar todos los slots consecutivos
-      const { error: updateError } = await supabase
-        .from("slots")
-        .update({
-          estado: "reservado",
-          reserva_id: String(newReserva.id),
-          origen: "dashboard",
-          cliente_nombre: nombreCliente.trim(),
-          cliente_telefono: telefonoCliente.trim(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("centro", centro)
-        .eq("tipo_cancha", tipoCancha)
-        .eq("cancha", cancha)
-        .eq("fecha", fecha)
-        .in(
-          "hora",
-          slotTimes.map((t) => `${t}:00`)
+        const unavailable = (slotChecks || []).filter(
+          (s: { estado: string }) => s.estado !== "disponible"
         );
+        if (unavailable.length > 0) {
+          toast({
+            title: "Horario no disponible",
+            description:
+              "Uno o mas slots fueron reservados por alguien mas. Selecciona otro horario.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          fetchHorasOcupadas();
+          return;
+        }
 
-      if (updateError) {
-        // Rollback: borrar la reserva creada
-        await supabase.from("reservas").delete().eq("id", newReserva.id);
+        if ((slotChecks || []).length < slotTimes.length) {
+          toast({
+            title: "Slots insuficientes",
+            description:
+              "No existen suficientes slots para la duracion seleccionada en este horario.",
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+
+        // 1. Crear reserva
+        const { data: newReserva, error: insertError } = await supabase
+          .from("reservas")
+          .insert({
+            centro,
+            tipo_cancha: tipoCancha,
+            cancha,
+            fecha,
+            hora: `${hora}:00`,
+            duracion,
+            nombre_cliente: nombreCliente.trim(),
+            telefono_cliente: telefonoCliente.trim(),
+            estado: "pendiente",
+            canal_origen: "dashboard",
+            origen: "dashboard",
+            notas: notas.trim() || null,
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          toast({
+            title: "Error al crear reserva",
+            description: insertError.message,
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+
+        // 2. Actualizar todos los slots consecutivos
+        const { error: updateError } = await supabase
+          .from("slots")
+          .update({
+            estado: "reservado",
+            reserva_id: String(newReserva.id),
+            origen: "dashboard",
+            cliente_nombre: nombreCliente.trim(),
+            cliente_telefono: telefonoCliente.trim(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("centro", centro)
+          .eq("tipo_cancha", tipoCancha)
+          .eq("cancha", cancha)
+          .eq("fecha", fecha)
+          .in(
+            "hora",
+            slotTimes.map((t) => `${t}:00`)
+          );
+
+        if (updateError) {
+          // Rollback: borrar la reserva creada
+          await supabase.from("reservas").delete().eq("id", newReserva.id);
+          toast({
+            title: "Error al actualizar disponibilidad",
+            description: updateError.message,
+            variant: "destructive",
+          });
+          setLoading(false);
+          return;
+        }
+
+        const durLabel = duracion > 60 ? ` (${duracion} min)` : "";
         toast({
-          title: "Error al actualizar disponibilidad",
-          description: updateError.message,
-          variant: "destructive",
+          title: "Reserva creada",
+          description: `${cancha} a las ${hora}${durLabel} para ${nombreCliente.trim()}`,
         });
-        setLoading(false);
-        return;
+
+        onOpenChange(false);
+        onCreated?.();
       }
-
-      const durLabel = duracion > 60 ? ` (${duracion} min)` : "";
-      toast({
-        title: "Reserva creada",
-        description: `${cancha} a las ${hora}${durLabel} para ${nombreCliente.trim()}`,
-      });
-
-      onOpenChange(false);
-      onCreated?.();
     } catch {
       toast({
         title: "Error inesperado",
-        description: "No se pudo crear la reserva. Intenta nuevamente.",
+        description: isEditing
+          ? "No se pudo actualizar la reserva. Intenta nuevamente."
+          : "No se pudo crear la reserva. Intenta nuevamente.",
         variant: "destructive",
       });
     } finally {
@@ -379,9 +491,11 @@ export function NuevaReservaDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nueva Reserva</DialogTitle>
+          <DialogTitle>{isEditing ? "Editar Reserva" : "Nueva Reserva"}</DialogTitle>
           <DialogDescription>
-            Completa los datos para crear una nueva reserva.
+            {isEditing
+              ? "Modifica los datos de la reserva existente."
+              : "Completa los datos para crear una nueva reserva."}
           </DialogDescription>
         </DialogHeader>
 
@@ -553,7 +667,9 @@ export function NuevaReservaDialog({
               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-sm text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
               {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              {loading ? "Creando..." : "Crear Reserva"}
+              {loading
+                ? isEditing ? "Guardando..." : "Creando..."
+                : isEditing ? "Guardar Cambios" : "Crear Reserva"}
             </button>
           </DialogFooter>
         </form>

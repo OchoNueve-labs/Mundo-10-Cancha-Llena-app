@@ -47,9 +47,10 @@ export default function DisponibilidadPage() {
   const [centro, setCentro] = useState<CentroName>("Lo Prado");
   const [tipoCancha, setTipoCancha] = useState<TipoCancha>("Futbolito");
 
-  // Reserva Dialog
+  // Reserva Dialog (create & edit)
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogInitial, setDialogInitial] = useState<NuevaReservaInitial>();
+  const [editReservaId, setEditReservaId] = useState<number | null>(null);
 
   // Bloquear Dialog
   const [bloquearOpen, setBloquearOpen] = useState(false);
@@ -345,9 +346,14 @@ export default function DisponibilidadPage() {
     <AppShell>
       <NuevaReservaDialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) setEditReservaId(null);
+        }}
         initialData={dialogInitial}
+        editReservaId={editReservaId}
         onCreated={fetchSlots}
+        onUpdated={fetchSlots}
       />
 
       <BloquearSlotDialog
@@ -386,6 +392,21 @@ export default function DisponibilidadPage() {
         duracionMin={cancelarData.duracionMin}
         origen={cancelarData.origen}
         onCancelled={fetchSlots}
+        onModificar={() => {
+          setCancelarOpen(false);
+          setEditReservaId(Number(cancelarData.reservaId));
+          setDialogInitial({
+            centro,
+            tipo_cancha: tipoCancha,
+            cancha: cancelarData.cancha,
+            fecha,
+            hora: cancelarData.hora,
+            nombre_cliente: cancelarData.clienteNombre || undefined,
+            telefono_cliente: cancelarData.clienteTelefono || undefined,
+            duracion: cancelarData.duracionMin,
+          });
+          setDialogOpen(true);
+        }}
       />
 
       <SlotActionMenu

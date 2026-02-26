@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2, Loader2 } from "lucide-react";
+import { Trash2, Pencil, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   Dialog,
@@ -25,6 +25,7 @@ interface CancelarReservaDialogProps {
   duracionMin: number;
   origen: string | null;
   onCancelled?: () => void;
+  onModificar?: () => void;
 }
 
 export function CancelarReservaDialog({
@@ -39,6 +40,7 @@ export function CancelarReservaDialog({
   duracionMin,
   origen,
   onCancelled,
+  onModificar,
 }: CancelarReservaDialogProps) {
   const supabase = createClient();
   const { toast } = useToast();
@@ -89,11 +91,10 @@ export function CancelarReservaDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Trash2 className="h-5 w-5 text-red-400" />
-            Cancelar Reserva
+            Detalle de Reserva
           </DialogTitle>
           <DialogDescription>
-            Esta accion cancelara la reserva y liberara los horarios asociados.
+            Puedes modificar o cancelar esta reserva.
           </DialogDescription>
         </DialogHeader>
 
@@ -146,14 +147,26 @@ export function CancelarReservaDialog({
           >
             Volver
           </button>
-          <button
-            onClick={handleCancelar}
-            disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-500 transition-colors disabled:opacity-50"
-          >
-            {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-            Cancelar Reserva
-          </button>
+          <div className="flex gap-2">
+            {onModificar && (
+              <button
+                onClick={onModificar}
+                disabled={saving}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+              >
+                <Pencil className="h-4 w-4" />
+                Modificar
+              </button>
+            )}
+            <button
+              onClick={handleCancelar}
+              disabled={saving}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-500 transition-colors disabled:opacity-50"
+            >
+              {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+              Cancelar Reserva
+            </button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
