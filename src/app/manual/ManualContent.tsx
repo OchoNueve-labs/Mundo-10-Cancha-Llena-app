@@ -1,6 +1,7 @@
 "use client";
 
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { Components } from "react-markdown";
 
 const components: Components = {
@@ -63,5 +64,5 @@ const components: Components = {
 };
 
 export function ManualContent({ content }: { content: string }) {
-  return <ReactMarkdown components={components}>{content}</ReactMarkdown>;
+  return <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>{content}</ReactMarkdown>;
 }
