@@ -52,6 +52,40 @@ export function normalizeCancha(raw: string): string {
   return trimmed;
 }
 
+/** Validate Chilean RUT format and verification digit (módulo 11) */
+export function validateRut(rut: string): boolean {
+  // Strip dots, spaces, and dashes; split body from check digit
+  const cleaned = rut.replace(/[\.\s]/g, "").toUpperCase();
+  const match = cleaned.match(/^(\d{7,8})-?([0-9K])$/);
+  if (!match) return false;
+
+  const body = match[1];
+  const dv = match[2];
+
+  // Módulo 11 algorithm
+  let sum = 0;
+  let mul = 2;
+  for (let i = body.length - 1; i >= 0; i--) {
+    sum += parseInt(body[i]) * mul;
+    mul = mul === 7 ? 2 : mul + 1;
+  }
+  const remainder = 11 - (sum % 11);
+  const expected = remainder === 11 ? "0" : remainder === 10 ? "K" : String(remainder);
+
+  return dv === expected;
+}
+
+/** Validate email format */
+export function validateEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+/** Sanitize search input for PostgREST .or() filters to prevent filter injection */
+export function sanitizeSearchQuery(input: string): string {
+  // Escape characters that are special in PostgREST filter values
+  return input.replace(/[%_\\(),."']/g, "");
+}
+
 export function generateTimeSlots(inicio: string, fin: string, intervalo: number): string[] {
   const slots: string[] = [];
   const [startH, startM] = inicio.split(":").map(Number);

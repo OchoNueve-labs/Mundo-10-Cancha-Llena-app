@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { CENTROS, type CentroName, type TipoCancha } from "@/lib/constants";
-import { generateTimeSlots } from "@/lib/utils";
+import { generateTimeSlots, validateRut, validateEmail } from "@/lib/utils";
 
 export interface NuevaReservaInitial {
   centro?: CentroName;
@@ -266,19 +266,19 @@ export function NuevaReservaDialog({
       return;
     }
 
-    if (!rutCliente || rutCliente.trim().length < 7) {
+    if (!rutCliente || !validateRut(rutCliente.trim())) {
       toast({
-        title: "RUT requerido",
-        description: "Ingresa un RUT valido (ej: 12345678-9).",
+        title: "RUT invalido",
+        description: "Ingresa un RUT chileno valido (ej: 12345678-9). Se verifica el digito verificador.",
         variant: "destructive",
       });
       return;
     }
 
-    if (!emailCliente || !emailCliente.includes("@")) {
+    if (!emailCliente || !validateEmail(emailCliente.trim())) {
       toast({
-        title: "Email requerido",
-        description: "Ingresa un email valido.",
+        title: "Email invalido",
+        description: "Ingresa un email valido (ej: cliente@email.com).",
         variant: "destructive",
       });
       return;
@@ -656,6 +656,7 @@ export function NuevaReservaDialog({
                 value={nombreCliente}
                 onChange={(e) => setNombreCliente(e.target.value)}
                 placeholder="Juan Perez"
+                maxLength={100}
                 className={inputClass}
               />
             </div>
@@ -667,6 +668,7 @@ export function NuevaReservaDialog({
                 value={telefonoCliente}
                 onChange={(e) => setTelefonoCliente(e.target.value)}
                 placeholder="+56912345678"
+                maxLength={20}
                 className={inputClass}
               />
             </div>
@@ -680,6 +682,7 @@ export function NuevaReservaDialog({
                 value={rutCliente}
                 onChange={(e) => setRutCliente(e.target.value)}
                 placeholder="12345678-9"
+                maxLength={12}
                 className={inputClass}
               />
             </div>
@@ -691,6 +694,7 @@ export function NuevaReservaDialog({
                 value={emailCliente}
                 onChange={(e) => setEmailCliente(e.target.value)}
                 placeholder="cliente@email.com"
+                maxLength={254}
                 className={inputClass}
               />
             </div>

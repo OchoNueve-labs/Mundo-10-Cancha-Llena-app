@@ -22,6 +22,7 @@ import {
   formatDate,
   formatRelative,
   getWhatsAppLink,
+  sanitizeSearchQuery,
 } from "@/lib/utils";
 import type { Cliente, Mensaje, MensajeRaw, Reserva } from "@/lib/types";
 
@@ -61,9 +62,12 @@ export default function ClientesPage() {
 
     if (canal) query = query.eq("canal", canal);
 
-    // Text search on nombre or telefono
+    // Text search on nombre or telefono (sanitize to prevent PostgREST filter injection)
     if (search) {
-      query = query.or(`nombre.ilike.%${search}%,telefono.ilike.%${search}%,sender_id.ilike.%${search}%,rut.ilike.%${search}%,email.ilike.%${search}%`);
+      const q = sanitizeSearchQuery(search);
+      if (q) {
+        query = query.or(`nombre.ilike.%${q}%,telefono.ilike.%${q}%,sender_id.ilike.%${q}%,rut.ilike.%${q}%,email.ilike.%${q}%`);
+      }
     }
 
     const { data, count, error } = await query;
