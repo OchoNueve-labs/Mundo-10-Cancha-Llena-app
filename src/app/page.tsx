@@ -9,6 +9,7 @@ import {
   Bot,
   Clock,
   RefreshCw,
+  XCircle,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { AppShell } from "@/components/layout/AppShell";
@@ -86,6 +87,7 @@ export default function DashboardPage() {
   });
   const [mensajesCount, setMensajesCount] = useState(0);
   const [alertasPendientes, setAlertasPendientes] = useState(0);
+  const [canceladasCount, setCanceladasCount] = useState(0);
   const [botCount, setBotCount] = useState(0);
   const [easycanchaCount, setEasycanchaCount] = useState(0);
 
@@ -114,13 +116,23 @@ export default function DashboardPage() {
       .lte("fecha", dateTo);
     setReservasCount(rCount || 0);
 
-    // Ocupacion Lo Prado (uses dateTo for "current day" view)
+    // Tasa de cancelacion en date range
+    const { count: cancelCount } = await supabase
+      .from("reservas")
+      .select("*", { count: "exact", head: true })
+      .gte("fecha", dateFrom)
+      .lte("fecha", dateTo)
+      .eq("estado", "cancelada");
+    setCanceladasCount(cancelCount || 0);
+
+    // Ocupacion Lo Prado — solo horario prime (17:00+)
     const { data: slotsLP } = await supabase
       .from("slots")
       .select("estado")
       .gte("fecha", dateFrom)
       .lte("fecha", dateTo)
-      .eq("centro", "Lo Prado");
+      .eq("centro", "Lo Prado")
+      .gte("hora", "17:00:00");
     if (slotsLP) {
       const total = slotsLP.length;
       const reservados = slotsLP.filter((s) => s.estado !== "disponible").length;
@@ -129,13 +141,14 @@ export default function DashboardPage() {
       setOcupacionLP({ centro: "Lo Prado", reservados, disponibles, total, porcentaje });
     }
 
-    // Ocupacion Quilicura
+    // Ocupacion Quilicura — solo horario prime (17:00+)
     const { data: slotsQ } = await supabase
       .from("slots")
       .select("estado")
       .gte("fecha", dateFrom)
       .lte("fecha", dateTo)
-      .eq("centro", "Quilicura");
+      .eq("centro", "Quilicura")
+      .gte("hora", "17:00:00");
     if (slotsQ) {
       const total = slotsQ.length;
       const reservados = slotsQ.filter((s) => s.estado !== "disponible").length;
@@ -225,7 +238,8 @@ export default function DashboardPage() {
       .from("slots")
       .select("hora, estado")
       .gte("fecha", dateFrom)
-      .lte("fecha", dateTo);
+      .lte("fecha", dateTo)
+      .gte("hora", "17:00:00");
 
     if (data) {
       const byHora = new Map<string, { total: number; libres: number }>();
@@ -293,6 +307,14 @@ export default function DashboardPage() {
       )
       .on(
         "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "reservas" },
+        () => {
+          fetchKpis();
+          fetchChart();
+        }
+      )
+      .on(
+        "postgres_changes",
         { event: "INSERT", schema: "public", table: "alertas" },
         (payload) => {
           setAlertasPendientes((p) => p + 1);
@@ -328,6 +350,9 @@ export default function DashboardPage() {
       : "Sin datos";
 
   const kpiDateLabel = isSingleDay ? "Hoy" : "Periodo";
+  const tasaCancelacion = reservasCount > 0
+    ? Math.round((canceladasCount / reservasCount) * 100)
+    : 0;
 
   return (
     <AppShell>
@@ -354,7 +379,18 @@ export default function DashboardPage() {
           icon={CalendarDays}
         />
         <KpiCard
-          title="Ocupacion LP"
+          title={`Cancelaciones ${kpiDateLabel}`}
+          value={loadingKpi ? "..." : `${tasaCancelacion}%`}
+          subtitle={
+            loadingKpi
+              ? undefined
+              : `${canceladasCount} de ${reservasCount}`
+          }
+          icon={XCircle}
+          trend={tasaCancelacion > 15 ? "down" : undefined}
+        />
+        <KpiCard
+          title="Ocupacion LP 17+"
           value={loadingKpi ? "..." : `${ocupacionLP.porcentaje}%`}
           subtitle={
             loadingKpi
@@ -365,7 +401,7 @@ export default function DashboardPage() {
           trend={ocupacionLP.porcentaje >= 70 ? "up" : ocupacionLP.porcentaje < 30 ? "down" : undefined}
         />
         <KpiCard
-          title="Ocupacion Q"
+          title="Ocupacion Q 17+"
           value={loadingKpi ? "..." : `${ocupacionQ.porcentaje}%`}
           subtitle={
             loadingKpi
@@ -422,7 +458,7 @@ export default function DashboardPage() {
         {/* Horarios Muertos */}
         <div className="rounded-xl border border-border bg-card p-5">
           <h3 className="text-sm font-medium text-muted-foreground mb-4">
-            Horarios con menor ocupacion
+            Horarios con menor ocupacion (17+)
           </h3>
           <HorariosMuertos horarios={horariosMuertos} loading={loadingHorarios} />
         </div>
