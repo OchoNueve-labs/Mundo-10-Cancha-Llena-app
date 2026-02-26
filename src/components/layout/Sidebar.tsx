@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LayoutDashboard, CalendarDays, BookOpen, Bell, MessageSquare, Users, LogOut, HelpCircle, type LucideIcon } from "lucide-react";
@@ -22,12 +23,8 @@ export function Sidebar({ alertCount }: { alertCount: number }) {
 
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-border bg-card lg:flex">
-      <div className="flex h-16 items-center gap-2 border-b border-border px-6">
-        <span className="text-xl">⚽</span>
-        <div>
-          <h2 className="text-sm font-bold text-foreground leading-tight">Cancha Llena</h2>
-          <p className="text-[10px] text-muted-foreground">Mundo 10</p>
-        </div>
+      <div className="flex h-16 items-center border-b border-border px-4">
+        <Image src="/logo-mundo10.jpg" alt="Mundo 10" width={180} height={48} className="h-10 w-auto" priority />
       </div>
       <nav className="flex-1 space-y-1 p-3">
         {NAV_ITEMS.map((item) => {

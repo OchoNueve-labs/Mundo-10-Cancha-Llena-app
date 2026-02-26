@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
@@ -34,11 +35,10 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="w-full max-w-sm mx-4">
-        <div className="text-center mb-8">
-          <div className="text-4xl mb-3">⚽</div>
-          <h1 className="text-2xl font-bold text-foreground">Cancha Llena</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Centro de Mando — Mundo 10
+        <div className="flex flex-col items-center mb-8">
+          <Image src="/logo-mundo10.jpg" alt="Mundo 10" width={280} height={72} className="h-16 w-auto mb-3" priority />
+          <p className="text-sm text-muted-foreground">
+            Centro de Mando
           </p>
         </div>
 
