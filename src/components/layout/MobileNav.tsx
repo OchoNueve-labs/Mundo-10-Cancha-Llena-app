@@ -26,7 +26,7 @@ export function MobileNav({ alertCount }: { alertCount: number }) {
   return (
     <>
       <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-border bg-card px-4 lg:hidden">
-        <Image src="/logo-mundo10.jpg" alt="Mundo 10" width={140} height={36} className="h-8 w-auto" />
+        <Image src="/logo-mundo10.png" alt="Mundo 10" width={140} height={36} className="h-8 w-auto" />
         <button onClick={() => setOpen(true)} className="p-2 text-muted-foreground hover:text-foreground">
           <Menu className="h-5 w-5" />
         </button>
@@ -34,7 +34,7 @@ export function MobileNav({ alertCount }: { alertCount: number }) {
       {open && <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm lg:hidden" onClick={() => setOpen(false)} />}
       <div className={cn("fixed inset-y-0 left-0 z-50 w-72 transform border-r border-border bg-card transition-transform duration-200 ease-in-out lg:hidden", open ? "translate-x-0" : "-translate-x-full")}>
         <div className="flex h-14 items-center justify-between border-b border-border px-4">
-          <Image src="/logo-mundo10.jpg" alt="Mundo 10" width={140} height={36} className="h-8 w-auto" />
+          <Image src="/logo-mundo10.png" alt="Mundo 10" width={140} height={36} className="h-8 w-auto" />
           <button onClick={() => setOpen(false)} className="p-2 text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
         </div>
         <nav className="flex-1 space-y-1 p-3">

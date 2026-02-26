@@ -36,7 +36,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="w-full max-w-sm mx-4">
         <div className="flex flex-col items-center mb-8">
-          <Image src="/logo-mundo10.jpg" alt="Mundo 10" width={280} height={72} className="h-16 w-auto mb-3" priority />
+          <Image src="/logo-mundo10.png" alt="Mundo 10" width={280} height={72} className="h-16 w-auto mb-3" priority />
           <p className="text-sm text-muted-foreground">
             Centro de Mando
           </p>

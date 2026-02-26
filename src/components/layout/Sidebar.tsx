@@ -24,7 +24,7 @@ export function Sidebar({ alertCount }: { alertCount: number }) {
   return (
     <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-border bg-card lg:flex">
       <div className="flex h-16 items-center border-b border-border px-4">
-        <Image src="/logo-mundo10.jpg" alt="Mundo 10" width={180} height={48} className="h-10 w-auto" priority />
+        <Image src="/logo-mundo10.png" alt="Mundo 10" width={180} height={48} className="h-10 w-auto" priority />
       </div>
       <nav className="flex-1 space-y-1 p-3">
         {NAV_ITEMS.map((item) => {
