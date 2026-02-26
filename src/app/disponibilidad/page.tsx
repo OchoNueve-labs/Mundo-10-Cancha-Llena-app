@@ -17,6 +17,9 @@ import {
   NuevaReservaDialog,
   type NuevaReservaInitial,
 } from "@/components/reservas/NuevaReservaDialog";
+import { BloquearSlotDialog } from "@/components/disponibilidad/BloquearSlotDialog";
+import { DesbloquearSlotDialog } from "@/components/disponibilidad/DesbloquearSlotDialog";
+import { SlotActionMenu } from "@/components/disponibilidad/SlotActionMenu";
 
 function toLocalDateStr(d: Date): string {
   const year = d.getFullYear();
@@ -43,9 +46,35 @@ export default function DisponibilidadPage() {
   const [centro, setCentro] = useState<CentroName>("Lo Prado");
   const [tipoCancha, setTipoCancha] = useState<TipoCancha>("Futbolito");
 
-  // Dialog
+  // Reserva Dialog
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogInitial, setDialogInitial] = useState<NuevaReservaInitial>();
+
+  // Bloquear Dialog
+  const [bloquearOpen, setBloquearOpen] = useState(false);
+  const [bloquearData, setBloquearData] = useState<{
+    slotId: string | null;
+    cancha: string;
+    hora: string;
+  }>({ slotId: null, cancha: "", hora: "" });
+
+  // Desbloquear Dialog
+  const [desbloquearOpen, setDesbloquearOpen] = useState(false);
+  const [desbloquearData, setDesbloquearData] = useState<{
+    slotId: string;
+    cancha: string;
+    hora: string;
+    notas: string | null;
+  }>({ slotId: "", cancha: "", hora: "", notas: null });
+
+  // Action Menu (popover on disponible cell click)
+  const [actionMenu, setActionMenu] = useState<{
+    open: boolean;
+    cancha: string;
+    hora: string;
+    slotId: string | null;
+    anchorRect: { top: number; left: number; width: number; height: number } | null;
+  }>({ open: false, cancha: "", hora: "", slotId: null, anchorRect: null });
 
   // Data
   const [slots, setSlots] = useState<Slot[]>([]);
@@ -237,18 +266,28 @@ export default function DisponibilidadPage() {
   const porcentaje =
     totalSlots > 0 ? Math.round((ocupados / totalSlots) * 100) : 0;
 
-  const handleCellClick = (hora: string, cancha: string) => {
+  const handleCellClick = (
+    e: React.MouseEvent<HTMLTableCellElement>,
+    hora: string,
+    cancha: string
+  ) => {
     const slot = slotMap.get(`${hora}|${cancha}`);
 
     if (!slot || slot.estado === "disponible") {
-      setDialogInitial({
-        centro,
-        tipo_cancha: tipoCancha,
+      // Show action menu with Reservar / Bloquear options
+      const rect = e.currentTarget.getBoundingClientRect();
+      setActionMenu({
+        open: true,
         cancha,
-        fecha,
         hora,
+        slotId: slot?.id ?? null,
+        anchorRect: {
+          top: rect.top,
+          left: rect.left,
+          width: rect.width,
+          height: rect.height,
+        },
       });
-      setDialogOpen(true);
     } else if (slot.estado === "reservado") {
       // Calculate duration from consecutive slots with same reserva_id (includes virtual entries)
       let duracionMin = canchaConfig?.intervalo ?? 60;
@@ -267,9 +306,14 @@ export default function DisponibilidadPage() {
         `Reserva existente:\n\nCancha: ${cancha}\nHora: ${hora}\nFecha: ${fecha}\nCliente: ${slot.cliente_nombre || "Sin nombre"}\nTelefono: ${slot.cliente_telefono || "—"}\nReserva ID: ${slot.reserva_id || "—"}${durLabel}`
       );
     } else {
-      window.alert(
-        `Slot bloqueado:\n\nCancha: ${cancha}\nHora: ${hora}\nNotas: ${slot.notas || "Sin motivo especificado"}`
-      );
+      // Bloqueado — open desbloquear dialog
+      setDesbloquearData({
+        slotId: slot.id,
+        cancha,
+        hora,
+        notas: slot.notas,
+      });
+      setDesbloquearOpen(true);
     }
   };
 
@@ -280,6 +324,54 @@ export default function DisponibilidadPage() {
         onOpenChange={setDialogOpen}
         initialData={dialogInitial}
         onCreated={fetchSlots}
+      />
+
+      <BloquearSlotDialog
+        open={bloquearOpen}
+        onOpenChange={setBloquearOpen}
+        slotId={bloquearData.slotId}
+        centro={centro}
+        tipoCancha={tipoCancha}
+        cancha={bloquearData.cancha}
+        fecha={fecha}
+        hora={bloquearData.hora}
+        duracion={canchaConfig?.intervalo ?? 60}
+        onBlocked={fetchSlots}
+      />
+
+      <DesbloquearSlotDialog
+        open={desbloquearOpen}
+        onOpenChange={setDesbloquearOpen}
+        slotId={desbloquearData.slotId}
+        cancha={desbloquearData.cancha}
+        fecha={fecha}
+        hora={desbloquearData.hora}
+        notas={desbloquearData.notas}
+        onUnblocked={fetchSlots}
+      />
+
+      <SlotActionMenu
+        open={actionMenu.open}
+        onClose={() => setActionMenu((prev) => ({ ...prev, open: false }))}
+        anchorRect={actionMenu.anchorRect}
+        onReservar={() => {
+          setDialogInitial({
+            centro,
+            tipo_cancha: tipoCancha,
+            cancha: actionMenu.cancha,
+            fecha,
+            hora: actionMenu.hora,
+          });
+          setDialogOpen(true);
+        }}
+        onBloquear={() => {
+          setBloquearData({
+            slotId: actionMenu.slotId,
+            cancha: actionMenu.cancha,
+            hora: actionMenu.hora,
+          });
+          setBloquearOpen(true);
+        }}
       />
 
       <Header
@@ -437,7 +529,7 @@ export default function DisponibilidadPage() {
                       return (
                         <td
                           key={cancha}
-                          onClick={() => handleCellClick(hora, cancha)}
+                          onClick={(e) => handleCellClick(e, hora, cancha)}
                           className={cn(
                             "px-3 py-2 text-center text-xs cursor-pointer transition-colors border-r border-border/20 last:border-r-0",
                             estado === "disponible" &&

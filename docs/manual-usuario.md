@@ -121,11 +121,32 @@ Arriba de la grilla veras un resumen: "X de Y slots ocupados (Z%)".
 
 1. Busca una celda verde (libre) en la hora y cancha que quieras
 2. Haz click en la celda
-3. Se abrira un formulario con la cancha, fecha y hora ya completados
-4. Solo necesitas llenar el **nombre del cliente** y su **telefono**
-5. Opcionalmente agrega una nota
-6. Haz click en **"Crear Reserva"**
-7. La celda cambiara de verde a rojo, mostrando el nombre del cliente
+3. Aparecera un menu con dos opciones: **"Reservar"** y **"Bloquear"**
+4. Selecciona **"Reservar"**
+5. Se abrira un formulario con la cancha, fecha y hora ya completados
+6. Solo necesitas llenar el **nombre del cliente** y su **telefono**
+7. Opcionalmente agrega una nota
+8. Haz click en **"Crear Reserva"**
+9. La celda cambiara de verde a rojo, mostrando el nombre del cliente
+
+### Bloquear un horario
+
+Si necesitas cerrar una cancha en un horario especifico (por mantenimiento, evento privado, etc.):
+
+1. Haz click en una celda verde (libre)
+2. Selecciona **"Bloquear"** en el menu que aparece
+3. Opcionalmente escribe un **motivo** del bloqueo
+4. Haz click en **"Bloquear"**
+5. La celda cambiara a gris con el texto "Bloqueado"
+
+Un horario bloqueado no estara disponible para reservas, ni desde el dashboard ni desde el bot.
+
+### Desbloquear un horario
+
+1. Haz click en una celda gris (bloqueada)
+2. Se mostrara el motivo del bloqueo (si se ingreso uno)
+3. Haz click en **"Desbloquear"**
+4. La celda volvera a verde (libre) y estara disponible para reservas
 
 ### Ver detalle de una reserva existente
 
