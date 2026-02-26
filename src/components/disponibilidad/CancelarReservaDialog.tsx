@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Trash2, Pencil, Loader2 } from "lucide-react";
+import { Pencil, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import {
   Dialog,
@@ -52,7 +52,7 @@ export function CancelarReservaDialog({
       const { error } = await supabase
         .from("reservas")
         .update({ estado: "cancelada" })
-        .eq("id", Number(reservaId));
+        .eq("id", reservaId);
 
       if (error) throw error;
 

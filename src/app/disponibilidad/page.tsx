@@ -50,7 +50,7 @@ export default function DisponibilidadPage() {
   // Reserva Dialog (create & edit)
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogInitial, setDialogInitial] = useState<NuevaReservaInitial>();
-  const [editReservaId, setEditReservaId] = useState<number | null>(null);
+  const [editReservaId, setEditReservaId] = useState<string | null>(null);
 
   // Bloquear Dialog
   const [bloquearOpen, setBloquearOpen] = useState(false);
@@ -394,7 +394,7 @@ export default function DisponibilidadPage() {
         onCancelled={fetchSlots}
         onModificar={() => {
           setCancelarOpen(false);
-          setEditReservaId(Number(cancelarData.reservaId));
+          setEditReservaId(cancelarData.reservaId);
           setDialogInitial({
             centro,
             tipo_cancha: tipoCancha,

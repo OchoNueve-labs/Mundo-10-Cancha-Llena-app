@@ -31,7 +31,7 @@ interface NuevaReservaDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialData?: NuevaReservaInitial;
-  editReservaId?: number | null;
+  editReservaId?: string | null;
   onCreated?: () => void;
   onUpdated?: () => void;
 }
@@ -204,7 +204,7 @@ export function NuevaReservaDialog({
 
     // When editing, exclude slots that belong to the current reservation
     if (editReservaId) {
-      query = query.neq("reserva_id", String(editReservaId));
+      query = query.neq("reserva_id", editReservaId);
     }
 
     const { data } = await query;
@@ -279,7 +279,7 @@ export function NuevaReservaDialog({
             cliente_telefono: null,
             updated_at: new Date().toISOString(),
           })
-          .eq("reserva_id", String(editReservaId));
+          .eq("reserva_id", editReservaId);
 
         // 2. Verify new slots are available
         const { data: slotChecks } = await supabase
@@ -337,7 +337,7 @@ export function NuevaReservaDialog({
           .from("slots")
           .update({
             estado: "reservado",
-            reserva_id: String(editReservaId),
+            reserva_id: editReservaId,
             origen: "dashboard",
             cliente_nombre: nombreCliente.trim(),
             cliente_telefono: telefonoCliente.trim(),
