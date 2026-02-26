@@ -324,7 +324,7 @@ Al final de la barra lateral (en computador) o del menu (en celular), encontrara
 |--------|------|---------|---------|
 | Lo Prado | Futbolito | Cancha 1 a Cancha 6 | 09:00 a 23:00 |
 | Quilicura | Futbolito | Cancha 1 a Cancha 4 | 08:00 a 23:00 |
-| Quilicura | Padel | Cancha 1 a Cancha 3 | 08:30 a 23:00 (intervalos de 30 min, duraciones de 60/90/120 min) |
+| Quilicura | Padel | Cancha 1 a Cancha 3 | 08:30 a 23:30 (intervalos de 30 min, duraciones de 60/90/120 min) |
 
 ### Tips utiles
 

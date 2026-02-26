@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X, LayoutDashboard, CalendarDays, BookOpen, Bell, MessageSquare, Users, LogOut, type LucideIcon } from "lucide-react";
+import { Menu, X, LayoutDashboard, CalendarDays, BookOpen, Bell, MessageSquare, Users, LogOut, HelpCircle, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
@@ -58,6 +58,9 @@ export function MobileNav({ alertCount }: { alertCount: number }) {
           })}
         </nav>
         <div className="border-t border-border p-3">
+          <Link href="/manual" onClick={() => setOpen(false)} className={cn("flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors", pathname === "/manual" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground")}>
+            <HelpCircle className="h-4 w-4" /><span>Manual de Usuario</span>
+          </Link>
           <button onClick={handleLogout} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
             <LogOut className="h-4 w-4" /><span>Cerrar sesión</span>
           </button>
