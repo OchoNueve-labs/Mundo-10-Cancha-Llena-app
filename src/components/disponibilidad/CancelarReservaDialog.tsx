@@ -22,6 +22,8 @@ interface CancelarReservaDialogProps {
   fecha: string;
   clienteNombre: string | null;
   clienteTelefono: string | null;
+  clienteRut: string | null;
+  clienteEmail: string | null;
   duracionMin: number;
   origen: string | null;
   onCancelled?: () => void;
@@ -37,6 +39,8 @@ export function CancelarReservaDialog({
   fecha,
   clienteNombre,
   clienteTelefono,
+  clienteRut,
+  clienteEmail,
   duracionMin,
   origen,
   onCancelled,
@@ -65,6 +69,8 @@ export function CancelarReservaDialog({
           origen: null,
           cliente_nombre: null,
           cliente_telefono: null,
+          cliente_rut: null,
+          cliente_email: null,
           updated_at: new Date().toISOString(),
         })
         .eq("reserva_id", reservaId);
@@ -126,6 +132,18 @@ export function CancelarReservaDialog({
               <span className="text-muted-foreground">Telefono</span>
               <p className="font-medium text-foreground">
                 {clienteTelefono || "—"}
+              </p>
+            </div>
+            <div>
+              <span className="text-muted-foreground">RUT</span>
+              <p className="font-medium text-foreground">
+                {clienteRut || "—"}
+              </p>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Email</span>
+              <p className="font-medium text-foreground truncate">
+                {clienteEmail || "—"}
               </p>
             </div>
           </div>

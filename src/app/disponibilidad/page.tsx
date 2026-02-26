@@ -77,6 +77,8 @@ export default function DisponibilidadPage() {
     hora: string;
     clienteNombre: string | null;
     clienteTelefono: string | null;
+    clienteRut: string | null;
+    clienteEmail: string | null;
     duracionMin: number;
     origen: string | null;
   }>({
@@ -85,6 +87,8 @@ export default function DisponibilidadPage() {
     hora: "",
     clienteNombre: null,
     clienteTelefono: null,
+    clienteRut: null,
+    clienteEmail: null,
     duracionMin: 60,
     origen: null,
   });
@@ -180,6 +184,8 @@ export default function DisponibilidadPage() {
             origen: reserva.canal_origen,
             cliente_nombre: reserva.nombre_cliente,
             cliente_telefono: reserva.telefono_cliente,
+            cliente_rut: reserva.rut_cliente,
+            cliente_email: reserva.email_cliente,
             notas: reserva.notas,
             created_at: reserva.created_at,
             updated_at: reserva.created_at,
@@ -326,6 +332,8 @@ export default function DisponibilidadPage() {
         hora,
         clienteNombre: slot.cliente_nombre,
         clienteTelefono: slot.cliente_telefono,
+        clienteRut: slot.cliente_rut,
+        clienteEmail: slot.cliente_email,
         duracionMin,
         origen: slot.origen,
       });
@@ -389,6 +397,8 @@ export default function DisponibilidadPage() {
         fecha={fecha}
         clienteNombre={cancelarData.clienteNombre}
         clienteTelefono={cancelarData.clienteTelefono}
+        clienteRut={cancelarData.clienteRut}
+        clienteEmail={cancelarData.clienteEmail}
         duracionMin={cancelarData.duracionMin}
         origen={cancelarData.origen}
         onCancelled={fetchSlots}
@@ -403,6 +413,8 @@ export default function DisponibilidadPage() {
             hora: cancelarData.hora,
             nombre_cliente: cancelarData.clienteNombre || undefined,
             telefono_cliente: cancelarData.clienteTelefono || undefined,
+            rut_cliente: cancelarData.clienteRut || undefined,
+            email_cliente: cancelarData.clienteEmail || undefined,
             duracion: cancelarData.duracionMin,
           });
           setDialogOpen(true);

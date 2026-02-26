@@ -11,6 +11,8 @@ export interface Slot {
   origen: "bot" | "easycancha" | "telefono" | "presencial" | "dashboard" | null;
   cliente_nombre: string | null;
   cliente_telefono: string | null;
+  cliente_rut: string | null;
+  cliente_email: string | null;
   notas: string | null;
   created_at: string;
   updated_at: string;
@@ -26,6 +28,8 @@ export interface Reserva {
   hora: string;
   nombre_cliente: string | null;
   telefono_cliente: string | null;
+  rut_cliente: string | null;
+  email_cliente: string | null;
   estado: "pendiente" | "confirmada" | "cancelada" | "completada" | "no_show";
   canal_origen: "bot" | "easycancha" | "telefono" | "presencial" | "dashboard" | null;
   codigo_easycancha: string | null;
@@ -40,6 +44,7 @@ export interface Cliente {
   sender_id: string;
   nombre: string | null;
   telefono: string | null;
+  rut: string | null;
   email: string | null;
   canal: "whatsapp" | "messenger" | "instagram" | null;
   created_at: string;

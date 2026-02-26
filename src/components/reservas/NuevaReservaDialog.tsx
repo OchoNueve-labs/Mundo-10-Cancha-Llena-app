@@ -23,6 +23,8 @@ export interface NuevaReservaInitial {
   hora?: string;
   nombre_cliente?: string;
   telefono_cliente?: string;
+  rut_cliente?: string;
+  email_cliente?: string;
   notas?: string;
   duracion?: number;
 }
@@ -90,6 +92,8 @@ export function NuevaReservaDialog({
   const [duracion, setDuracion] = useState(60);
   const [nombreCliente, setNombreCliente] = useState("");
   const [telefonoCliente, setTelefonoCliente] = useState("");
+  const [rutCliente, setRutCliente] = useState("");
+  const [emailCliente, setEmailCliente] = useState("");
   const [notas, setNotas] = useState("");
 
   // UI state
@@ -108,6 +112,8 @@ export function NuevaReservaDialog({
       setDuracion(initialData?.duracion || 60);
       setNombreCliente(initialData?.nombre_cliente || "");
       setTelefonoCliente(initialData?.telefono_cliente || "");
+      setRutCliente(initialData?.rut_cliente || "");
+      setEmailCliente(initialData?.email_cliente || "");
       setNotas(initialData?.notas || "");
     }
   }, [open, initialData]);
@@ -260,6 +266,24 @@ export function NuevaReservaDialog({
       return;
     }
 
+    if (!rutCliente || rutCliente.trim().length < 7) {
+      toast({
+        title: "RUT requerido",
+        description: "Ingresa un RUT valido (ej: 12345678-9).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!emailCliente || !emailCliente.includes("@")) {
+      toast({
+        title: "Email requerido",
+        description: "Ingresa un email valido.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     const intervalo = canchaConfig?.intervalo ?? 60;
@@ -318,6 +342,8 @@ export function NuevaReservaDialog({
             duracion,
             nombre_cliente: nombreCliente.trim(),
             telefono_cliente: telefonoCliente.trim(),
+            rut_cliente: rutCliente.trim(),
+            email_cliente: emailCliente.trim(),
             notas: notas.trim() || null,
           })
           .eq("id", editReservaId);
@@ -341,6 +367,8 @@ export function NuevaReservaDialog({
             origen: "dashboard",
             cliente_nombre: nombreCliente.trim(),
             cliente_telefono: telefonoCliente.trim(),
+            cliente_rut: rutCliente.trim(),
+            cliente_email: emailCliente.trim(),
             updated_at: new Date().toISOString(),
           })
           .eq("centro", centro)
@@ -410,6 +438,8 @@ export function NuevaReservaDialog({
             duracion,
             nombre_cliente: nombreCliente.trim(),
             telefono_cliente: telefonoCliente.trim(),
+            rut_cliente: rutCliente.trim(),
+            email_cliente: emailCliente.trim(),
             estado: "pendiente",
             canal_origen: "dashboard",
             origen: "dashboard",
@@ -437,6 +467,8 @@ export function NuevaReservaDialog({
             origen: "dashboard",
             cliente_nombre: nombreCliente.trim(),
             cliente_telefono: telefonoCliente.trim(),
+            cliente_rut: rutCliente.trim(),
+            cliente_email: emailCliente.trim(),
             updated_at: new Date().toISOString(),
           })
           .eq("centro", centro)
@@ -635,6 +667,30 @@ export function NuevaReservaDialog({
                 value={telefonoCliente}
                 onChange={(e) => setTelefonoCliente(e.target.value)}
                 placeholder="+56912345678"
+                className={inputClass}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>RUT</label>
+              <input
+                type="text"
+                value={rutCliente}
+                onChange={(e) => setRutCliente(e.target.value)}
+                placeholder="12345678-9"
+                className={inputClass}
+              />
+            </div>
+
+            <div>
+              <label className={labelClass}>Email</label>
+              <input
+                type="email"
+                value={emailCliente}
+                onChange={(e) => setEmailCliente(e.target.value)}
+                placeholder="cliente@email.com"
                 className={inputClass}
               />
             </div>

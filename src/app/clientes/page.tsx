@@ -63,7 +63,7 @@ export default function ClientesPage() {
 
     // Text search on nombre or telefono
     if (search) {
-      query = query.or(`nombre.ilike.%${search}%,telefono.ilike.%${search}%,sender_id.ilike.%${search}%`);
+      query = query.or(`nombre.ilike.%${search}%,telefono.ilike.%${search}%,sender_id.ilike.%${search}%,rut.ilike.%${search}%,email.ilike.%${search}%`);
     }
 
     const { data, count, error } = await query;
@@ -215,6 +215,9 @@ export default function ClientesPage() {
                     Telefono
                   </th>
                   <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border">
+                    RUT
+                  </th>
+                  <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border">
                     Email
                   </th>
                   <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border">
@@ -254,6 +257,9 @@ export default function ClientesPage() {
                       </td>
                       <td className="px-3 py-2.5 text-sm text-foreground font-mono">
                         {cliente.telefono || "—"}
+                      </td>
+                      <td className="px-3 py-2.5 text-sm text-muted-foreground">
+                        {cliente.rut || "—"}
                       </td>
                       <td className="px-3 py-2.5 text-sm text-muted-foreground">
                         {cliente.email || "—"}
@@ -298,7 +304,7 @@ export default function ClientesPage() {
                     {/* Expanded Row */}
                     {expandedId === cliente.id && (
                       <tr key={`${cliente.id}-expanded`}>
-                        <td colSpan={8} className="px-6 py-4 bg-accent/10 border-b border-border">
+                        <td colSpan={9} className="px-6 py-4 bg-accent/10 border-b border-border">
                           {loadingExpanded ? (
                             <div className="space-y-2">
                               {Array.from({ length: 3 }).map((_, i) => (

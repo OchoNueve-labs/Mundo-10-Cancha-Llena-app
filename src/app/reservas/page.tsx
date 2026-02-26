@@ -309,6 +309,12 @@ export default function ReservasPage() {
                         <p className="text-xs text-muted-foreground font-mono">
                           {reserva.telefono_cliente || "—"}
                         </p>
+                        {reserva.rut_cliente && (
+                          <p className="text-xs text-muted-foreground">RUT: {reserva.rut_cliente}</p>
+                        )}
+                        {reserva.email_cliente && (
+                          <p className="text-xs text-muted-foreground truncate max-w-[180px]">{reserva.email_cliente}</p>
+                        )}
                       </div>
                     </td>
                     <td className="px-3 py-2.5 text-sm text-muted-foreground">
