@@ -7,6 +7,7 @@ import {
   MessageSquare,
   Bell,
   Bot,
+  Clock,
   RefreshCw,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -45,6 +46,13 @@ function daysAgo(n: number): string {
   const d = new Date();
   d.setDate(d.getDate() - n);
   return toLocalDateStr(d);
+}
+
+function formatMinutes(min: number): string {
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
 export default function DashboardPage() {
@@ -339,7 +347,7 @@ export default function DashboardPage() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6 mb-6">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 mb-6">
         <KpiCard
           title={`Reservas ${kpiDateLabel}`}
           value={loadingKpi ? "..." : reservasCount}
@@ -383,6 +391,17 @@ export default function DashboardPage() {
           value={loadingKpi ? "..." : botCount + easycanchaCount}
           subtitle={loadingKpi ? undefined : botLabel}
           icon={Bot}
+        />
+        <KpiCard
+          title="Tiempo Ahorrado"
+          value={loadingKpi ? "..." : formatMinutes((botCount + easycanchaCount) * 8)}
+          subtitle={
+            loadingKpi
+              ? undefined
+              : `${botCount + easycanchaCount} reservas automatizadas`
+          }
+          icon={Clock}
+          trend={botCount + easycanchaCount > 0 ? "up" : undefined}
         />
       </div>
 

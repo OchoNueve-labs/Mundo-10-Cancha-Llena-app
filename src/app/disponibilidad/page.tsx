@@ -19,6 +19,7 @@ import {
 } from "@/components/reservas/NuevaReservaDialog";
 import { BloquearSlotDialog } from "@/components/disponibilidad/BloquearSlotDialog";
 import { DesbloquearSlotDialog } from "@/components/disponibilidad/DesbloquearSlotDialog";
+import { CancelarReservaDialog } from "@/components/disponibilidad/CancelarReservaDialog";
 import { SlotActionMenu } from "@/components/disponibilidad/SlotActionMenu";
 
 function toLocalDateStr(d: Date): string {
@@ -66,6 +67,26 @@ export default function DisponibilidadPage() {
     hora: string;
     notas: string | null;
   }>({ slotId: "", cancha: "", hora: "", notas: null });
+
+  // Cancelar Reserva Dialog
+  const [cancelarOpen, setCancelarOpen] = useState(false);
+  const [cancelarData, setCancelarData] = useState<{
+    reservaId: string;
+    cancha: string;
+    hora: string;
+    clienteNombre: string | null;
+    clienteTelefono: string | null;
+    duracionMin: number;
+    origen: string | null;
+  }>({
+    reservaId: "",
+    cancha: "",
+    hora: "",
+    clienteNombre: null,
+    clienteTelefono: null,
+    duracionMin: 60,
+    origen: null,
+  });
 
   // Action Menu (popover on disponible cell click)
   const [actionMenu, setActionMenu] = useState<{
@@ -298,13 +319,16 @@ export default function DisponibilidadPage() {
         }
         duracionMin = count * (canchaConfig?.intervalo ?? 60);
       }
-      const durLabel =
-        duracionMin > (canchaConfig?.intervalo ?? 60)
-          ? `\nDuracion: ${duracionMin} min`
-          : "";
-      window.alert(
-        `Reserva existente:\n\nCancha: ${cancha}\nHora: ${hora}\nFecha: ${fecha}\nCliente: ${slot.cliente_nombre || "Sin nombre"}\nTelefono: ${slot.cliente_telefono || "—"}\nReserva ID: ${slot.reserva_id || "—"}${durLabel}`
-      );
+      setCancelarData({
+        reservaId: slot.reserva_id || "",
+        cancha,
+        hora,
+        clienteNombre: slot.cliente_nombre,
+        clienteTelefono: slot.cliente_telefono,
+        duracionMin,
+        origen: slot.origen,
+      });
+      setCancelarOpen(true);
     } else {
       // Bloqueado — open desbloquear dialog
       setDesbloquearData({
@@ -348,6 +372,20 @@ export default function DisponibilidadPage() {
         hora={desbloquearData.hora}
         notas={desbloquearData.notas}
         onUnblocked={fetchSlots}
+      />
+
+      <CancelarReservaDialog
+        open={cancelarOpen}
+        onOpenChange={setCancelarOpen}
+        reservaId={cancelarData.reservaId}
+        cancha={cancelarData.cancha}
+        hora={cancelarData.hora}
+        fecha={fecha}
+        clienteNombre={cancelarData.clienteNombre}
+        clienteTelefono={cancelarData.clienteTelefono}
+        duracionMin={cancelarData.duracionMin}
+        origen={cancelarData.origen}
+        onCancelled={fetchSlots}
       />
 
       <SlotActionMenu
