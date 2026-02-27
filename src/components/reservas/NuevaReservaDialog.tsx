@@ -369,6 +369,7 @@ export function NuevaReservaDialog({
             cliente_telefono: telefonoCliente.trim(),
             cliente_rut: rutCliente.trim(),
             cliente_email: emailCliente.trim(),
+            notas: notas.trim() || null,
             updated_at: new Date().toISOString(),
           })
           .eq("centro", centro)
@@ -469,6 +470,7 @@ export function NuevaReservaDialog({
             cliente_telefono: telefonoCliente.trim(),
             cliente_rut: rutCliente.trim(),
             cliente_email: emailCliente.trim(),
+            notas: notas.trim() || null,
             updated_at: new Date().toISOString(),
           })
           .eq("centro", centro)
