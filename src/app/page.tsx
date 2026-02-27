@@ -23,7 +23,7 @@ import {
   DateRangePicker,
   type DateRange,
 } from "@/components/dashboard/DateRangePicker";
-import { cn } from "@/lib/utils";
+import { cn, normalizeCancha } from "@/lib/utils";
 import type {
   Reserva,
   Alerta,
@@ -126,32 +126,100 @@ export default function DashboardPage() {
     setCanceladasCount(cancelCount || 0);
 
     // Ocupacion Lo Prado — solo horario prime (17:00+)
-    const { data: slotsLP } = await supabase
-      .from("slots")
-      .select("estado")
-      .gte("fecha", dateFrom)
-      .lte("fecha", dateTo)
-      .eq("centro", "Lo Prado")
-      .gte("hora", "17:00:00");
-    if (slotsLP) {
+    // Reconcilia slots con reservas activas (bot puede crear reservas sin actualizar slots)
+    const [slotsLPRes, reservasLPRes] = await Promise.all([
+      supabase
+        .from("slots")
+        .select("fecha, hora, cancha, estado")
+        .gte("fecha", dateFrom)
+        .lte("fecha", dateTo)
+        .eq("centro", "Lo Prado")
+        .gte("hora", "17:00:00"),
+      supabase
+        .from("reservas")
+        .select("fecha, hora, cancha")
+        .gte("fecha", dateFrom)
+        .lte("fecha", dateTo)
+        .eq("centro", "Lo Prado")
+        .gte("hora", "17:00:00")
+        .in("estado", ["pendiente", "confirmada"]),
+    ]);
+    if (slotsLPRes.data) {
+      const slotsLP = slotsLPRes.data;
+      const reservasLP = reservasLPRes.data || [];
+      // Set of occupied keys: fecha|hora|cancha
+      const occupiedKeys = new Set<string>();
+      for (const s of slotsLP) {
+        if (s.estado !== "disponible") {
+          occupiedKeys.add(`${s.fecha}|${s.hora?.substring(0, 5)}|${s.cancha}`);
+        }
+      }
+      for (const r of reservasLP) {
+        occupiedKeys.add(`${r.fecha}|${r.hora?.substring(0, 5)}|${normalizeCancha(r.cancha)}`);
+      }
+      // Count how many actual slots are occupied
+      let reservados = 0;
+      for (const s of slotsLP) {
+        const key = `${s.fecha}|${s.hora?.substring(0, 5)}|${s.cancha}`;
+        if (occupiedKeys.has(key)) reservados++;
+      }
       const total = slotsLP.length;
-      const reservados = slotsLP.filter((s) => s.estado !== "disponible").length;
       const disponibles = total - reservados;
       const porcentaje = total > 0 ? Math.round((reservados / total) * 100) : 0;
       setOcupacionLP({ centro: "Lo Prado", reservados, disponibles, total, porcentaje });
     }
 
     // Ocupacion Quilicura — solo horario prime (17:00+)
-    const { data: slotsQ } = await supabase
-      .from("slots")
-      .select("estado")
-      .gte("fecha", dateFrom)
-      .lte("fecha", dateTo)
-      .eq("centro", "Quilicura")
-      .gte("hora", "17:00:00");
-    if (slotsQ) {
+    // Reconcilia slots con reservas activas; maneja Futbolito (60min) y Padel (30min)
+    const [slotsQRes, reservasQRes] = await Promise.all([
+      supabase
+        .from("slots")
+        .select("fecha, hora, cancha, estado, tipo_cancha")
+        .gte("fecha", dateFrom)
+        .lte("fecha", dateTo)
+        .eq("centro", "Quilicura")
+        .gte("hora", "17:00:00"),
+      supabase
+        .from("reservas")
+        .select("fecha, hora, cancha, duracion, tipo_cancha")
+        .gte("fecha", dateFrom)
+        .lte("fecha", dateTo)
+        .eq("centro", "Quilicura")
+        .gte("hora", "15:00:00") // captura spillovers de Padel hacia 17:00+
+        .in("estado", ["pendiente", "confirmada"]),
+    ]);
+    if (slotsQRes.data) {
+      const slotsQ = slotsQRes.data;
+      const reservasQ = reservasQRes.data || [];
+      // Set of occupied keys: fecha|tipo_cancha|hora|cancha
+      const occupiedKeys = new Set<string>();
+      for (const s of slotsQ) {
+        if (s.estado !== "disponible") {
+          occupiedKeys.add(`${s.fecha}|${s.tipo_cancha}|${s.hora?.substring(0, 5)}|${s.cancha}`);
+        }
+      }
+      for (const r of reservasQ) {
+        const tipo = r.tipo_cancha === "Pádel" ? "Padel" : r.tipo_cancha;
+        const intervalo = tipo === "Padel" ? 30 : 60;
+        const duracion = r.duracion ?? intervalo;
+        const slotsNeeded = Math.max(1, Math.floor(duracion / intervalo));
+        const horaStart = r.hora?.substring(0, 5) ?? "";
+        const [hh, mm] = horaStart.split(":").map(Number);
+        const startMin = hh * 60 + mm;
+        for (let i = 0; i < slotsNeeded; i++) {
+          const totalMin = startMin + i * intervalo;
+          if (totalMin < 17 * 60) continue; // solo prime time
+          const sh = Math.floor(totalMin / 60).toString().padStart(2, "0");
+          const sm = (totalMin % 60).toString().padStart(2, "0");
+          occupiedKeys.add(`${r.fecha}|${tipo}|${sh}:${sm}|${normalizeCancha(r.cancha)}`);
+        }
+      }
+      let reservados = 0;
+      for (const s of slotsQ) {
+        const key = `${s.fecha}|${s.tipo_cancha}|${s.hora?.substring(0, 5)}|${s.cancha}`;
+        if (occupiedKeys.has(key)) reservados++;
+      }
       const total = slotsQ.length;
-      const reservados = slotsQ.filter((s) => s.estado !== "disponible").length;
       const disponibles = total - reservados;
       const porcentaje = total > 0 ? Math.round((reservados / total) * 100) : 0;
       setOcupacionQ({ centro: "Quilicura", reservados, disponibles, total, porcentaje });
@@ -231,24 +299,62 @@ export default function DashboardPage() {
     setLoadingProximas(false);
   }, [supabase]);
 
-  // --- Horarios muertos (in date range) ---
+  // --- Horarios muertos (in date range) — reconcilia con reservas ---
   const fetchHorarios = useCallback(async () => {
     setLoadingHorarios(true);
-    const { data } = await supabase
-      .from("slots")
-      .select("hora, estado")
-      .gte("fecha", dateFrom)
-      .lte("fecha", dateTo)
-      .gte("hora", "17:00:00");
+    const [slotsRes, reservasRes] = await Promise.all([
+      supabase
+        .from("slots")
+        .select("fecha, hora, cancha, estado, tipo_cancha, centro")
+        .gte("fecha", dateFrom)
+        .lte("fecha", dateTo)
+        .gte("hora", "17:00:00"),
+      supabase
+        .from("reservas")
+        .select("fecha, hora, cancha, duracion, tipo_cancha, centro")
+        .gte("fecha", dateFrom)
+        .lte("fecha", dateTo)
+        .gte("hora", "15:00:00") // captura spillovers de Padel
+        .in("estado", ["pendiente", "confirmada"]),
+    ]);
 
-    if (data) {
+    if (slotsRes.data) {
+      const slotsData = slotsRes.data;
+      const reservasData = reservasRes.data || [];
+
+      // Build set of occupied keys: fecha|centro|tipo_cancha|hora|cancha
+      const occupiedKeys = new Set<string>();
+      for (const s of slotsData) {
+        if (s.estado !== "disponible") {
+          occupiedKeys.add(`${s.fecha}|${s.centro}|${s.tipo_cancha}|${s.hora?.substring(0, 5)}|${s.cancha}`);
+        }
+      }
+      for (const r of reservasData) {
+        const tipo = r.tipo_cancha === "Pádel" ? "Padel" : r.tipo_cancha;
+        const intervalo = tipo === "Padel" ? 30 : 60;
+        const duracion = r.duracion ?? intervalo;
+        const slotsNeeded = Math.max(1, Math.floor(duracion / intervalo));
+        const horaStart = r.hora?.substring(0, 5) ?? "";
+        const [hh, mm] = horaStart.split(":").map(Number);
+        const startMin = hh * 60 + mm;
+        for (let i = 0; i < slotsNeeded; i++) {
+          const totalMin = startMin + i * intervalo;
+          if (totalMin < 17 * 60) continue;
+          const sh = Math.floor(totalMin / 60).toString().padStart(2, "0");
+          const sm = (totalMin % 60).toString().padStart(2, "0");
+          occupiedKeys.add(`${r.fecha}|${r.centro}|${tipo}|${sh}:${sm}|${normalizeCancha(r.cancha)}`);
+        }
+      }
+
+      // Compute per-hora stats checking each slot against occupied set
       const byHora = new Map<string, { total: number; libres: number }>();
-      for (const slot of data) {
-        const hora = slot.hora?.substring(0, 5) ?? "";
+      for (const s of slotsData) {
+        const hora = s.hora?.substring(0, 5) ?? "";
         if (!byHora.has(hora)) byHora.set(hora, { total: 0, libres: 0 });
         const entry = byHora.get(hora)!;
         entry.total++;
-        if (slot.estado === "disponible") entry.libres++;
+        const key = `${s.fecha}|${s.centro}|${s.tipo_cancha}|${hora}|${s.cancha}`;
+        if (!occupiedKeys.has(key)) entry.libres++;
       }
 
       const sorted = Array.from(byHora.entries())
@@ -303,6 +409,7 @@ export default function DashboardPage() {
           fetchKpis();
           fetchProximas();
           fetchChart();
+          fetchHorarios();
         }
       )
       .on(
@@ -311,6 +418,7 @@ export default function DashboardPage() {
         () => {
           fetchKpis();
           fetchChart();
+          fetchHorarios();
         }
       )
       .on(
