@@ -81,6 +81,7 @@ export default function DisponibilidadPage() {
     clienteEmail: string | null;
     duracionMin: number;
     origen: string | null;
+    notas: string | null;
   }>({
     reservaId: "",
     cancha: "",
@@ -91,6 +92,7 @@ export default function DisponibilidadPage() {
     clienteEmail: null,
     duracionMin: 60,
     origen: null,
+    notas: null,
   });
 
   // Action Menu (popover on disponible cell click)
@@ -336,6 +338,7 @@ export default function DisponibilidadPage() {
         clienteEmail: slot.cliente_email,
         duracionMin,
         origen: slot.origen,
+        notas: slot.notas,
       });
       setCancelarOpen(true);
     } else {
@@ -401,6 +404,7 @@ export default function DisponibilidadPage() {
         clienteEmail={cancelarData.clienteEmail}
         duracionMin={cancelarData.duracionMin}
         origen={cancelarData.origen}
+        notas={cancelarData.notas}
         onCancelled={fetchSlots}
         onModificar={() => {
           setCancelarOpen(false);
@@ -416,6 +420,7 @@ export default function DisponibilidadPage() {
             rut_cliente: cancelarData.clienteRut || undefined,
             email_cliente: cancelarData.clienteEmail || undefined,
             duracion: cancelarData.duracionMin,
+            notas: cancelarData.notas || undefined,
           });
           setDialogOpen(true);
         }}

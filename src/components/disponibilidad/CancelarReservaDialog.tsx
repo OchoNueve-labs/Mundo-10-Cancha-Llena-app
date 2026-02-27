@@ -26,6 +26,7 @@ interface CancelarReservaDialogProps {
   clienteEmail: string | null;
   duracionMin: number;
   origen: string | null;
+  notas: string | null;
   onCancelled?: () => void;
   onModificar?: () => void;
 }
@@ -43,6 +44,7 @@ export function CancelarReservaDialog({
   clienteEmail,
   duracionMin,
   origen,
+  notas,
   onCancelled,
   onModificar,
 }: CancelarReservaDialogProps) {
@@ -154,6 +156,15 @@ export function CancelarReservaDialog({
                 Canal de origen
               </span>
               <p className="text-sm text-foreground">{origen}</p>
+            </div>
+          )}
+
+          {notas && (
+            <div className="p-3 rounded-lg bg-muted/50 border border-border">
+              <span className="text-xs text-muted-foreground block mb-1">
+                Notas
+              </span>
+              <p className="text-sm text-foreground">{notas}</p>
             </div>
           )}
         </div>
