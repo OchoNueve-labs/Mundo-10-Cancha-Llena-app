@@ -282,6 +282,9 @@ export default function ReservasPage() {
                   <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border">
                     Canal
                   </th>
+                  <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border">
+                    Notas
+                  </th>
                   <th className="px-3 py-2.5 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border">
                     Acciones
                   </th>
@@ -339,6 +342,11 @@ export default function ReservasPage() {
                     </td>
                     <td className="px-3 py-2.5 text-sm text-muted-foreground capitalize">
                       {reserva.canal_origen || "—"}
+                    </td>
+                    <td className="px-3 py-2.5 text-sm text-muted-foreground max-w-[200px]">
+                      {reserva.notas ? (
+                        <span className="truncate block" title={reserva.notas}>{reserva.notas}</span>
+                      ) : "—"}
                     </td>
                     <td className="px-3 py-2.5">
                       <div className="flex items-center justify-end gap-1">
