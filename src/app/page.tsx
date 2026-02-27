@@ -23,7 +23,7 @@ import {
   DateRangePicker,
   type DateRange,
 } from "@/components/dashboard/DateRangePicker";
-import { cn, normalizeCancha } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type {
   Reserva,
   Alerta,
@@ -125,104 +125,75 @@ export default function DashboardPage() {
       .eq("estado", "cancelada");
     setCanceladasCount(cancelCount || 0);
 
+    // Dias en el rango seleccionado
+    const daysInRange = Math.round(
+      (new Date(dateTo + "T12:00:00").getTime() - new Date(dateFrom + "T12:00:00").getTime()) / 86400000
+    ) + 1;
+
     // Ocupacion Lo Prado — solo horario prime (17:00+)
-    // Reconcilia slots con reservas activas (bot puede crear reservas sin actualizar slots)
-    const [slotsLPRes, reservasLPRes] = await Promise.all([
-      supabase
-        .from("slots")
-        .select("fecha, hora, cancha, estado")
-        .gte("fecha", dateFrom)
-        .lte("fecha", dateTo)
-        .eq("centro", "Lo Prado")
-        .gte("hora", "17:00:00"),
-      supabase
-        .from("reservas")
-        .select("fecha, hora, cancha")
-        .gte("fecha", dateFrom)
-        .lte("fecha", dateTo)
-        .eq("centro", "Lo Prado")
-        .gte("hora", "17:00:00")
-        .not("estado", "in", '("cancelada","no_show")'),
-    ]);
-    if (slotsLPRes.data) {
-      const slotsLP = slotsLPRes.data;
-      const reservasLP = reservasLPRes.data || [];
-      // Set of occupied keys: fecha|hora|cancha
-      const occupiedKeys = new Set<string>();
-      for (const s of slotsLP) {
-        if (s.estado !== "disponible") {
-          occupiedKeys.add(`${s.fecha}|${s.hora?.substring(0, 5)}|${s.cancha}`);
-        }
-      }
-      for (const r of reservasLP) {
-        occupiedKeys.add(`${r.fecha}|${r.hora?.substring(0, 5)}|${normalizeCancha(r.cancha)}`);
-      }
-      // Count how many actual slots are occupied
-      let reservados = 0;
-      for (const s of slotsLP) {
-        const key = `${s.fecha}|${s.hora?.substring(0, 5)}|${s.cancha}`;
-        if (occupiedKeys.has(key)) reservados++;
-      }
-      const total = slotsLP.length;
-      const disponibles = total - reservados;
-      const porcentaje = total > 0 ? Math.round((reservados / total) * 100) : 0;
-      setOcupacionLP({ centro: "Lo Prado", reservados, disponibles, total, porcentaje });
+    // Calcula desde reservas directamente; capacidad teorica desde constantes
+    // LP: 6 canchas Futbolito × 7 horas prime (17-23) = 42 slots/dia
+    const { data: allReservasLP } = await supabase
+      .from("reservas")
+      .select("hora, estado")
+      .gte("fecha", dateFrom)
+      .lte("fecha", dateTo)
+      .eq("centro", "Lo Prado");
+    {
+      const totalLP = 6 * 7 * daysInRange; // 42 slots/dia
+      const reservadosLP = (allReservasLP || []).filter((r) => {
+        const hora = r.hora?.substring(0, 5) ?? "00:00";
+        return hora >= "17:00" && r.estado !== "cancelada" && r.estado !== "no_show";
+      }).length;
+      const capped = Math.min(reservadosLP, totalLP);
+      setOcupacionLP({
+        centro: "Lo Prado",
+        reservados: capped,
+        disponibles: totalLP - capped,
+        total: totalLP,
+        porcentaje: totalLP > 0 ? Math.round((capped / totalLP) * 100) : 0,
+      });
     }
 
     // Ocupacion Quilicura — solo horario prime (17:00+)
-    // Reconcilia slots con reservas activas; maneja Futbolito (60min) y Padel (30min)
-    const [slotsQRes, reservasQRes] = await Promise.all([
-      supabase
-        .from("slots")
-        .select("fecha, hora, cancha, estado, tipo_cancha")
-        .gte("fecha", dateFrom)
-        .lte("fecha", dateTo)
-        .eq("centro", "Quilicura")
-        .gte("hora", "17:00:00"),
-      supabase
-        .from("reservas")
-        .select("fecha, hora, cancha, duracion, tipo_cancha")
-        .gte("fecha", dateFrom)
-        .lte("fecha", dateTo)
-        .eq("centro", "Quilicura")
-        .gte("hora", "15:00:00") // captura spillovers de Padel hacia 17:00+
-        .not("estado", "in", '("cancelada","no_show")'),
-    ]);
-    if (slotsQRes.data) {
-      const slotsQ = slotsQRes.data;
-      const reservasQ = reservasQRes.data || [];
-      // Set of occupied keys: fecha|tipo_cancha|hora|cancha
-      const occupiedKeys = new Set<string>();
-      for (const s of slotsQ) {
-        if (s.estado !== "disponible") {
-          occupiedKeys.add(`${s.fecha}|${s.tipo_cancha}|${s.hora?.substring(0, 5)}|${s.cancha}`);
-        }
-      }
-      for (const r of reservasQ) {
+    // Q: 4 Futbolito × 7h = 28 + 3 Padel × 14 half-hours (17:00-23:30) = 42 → 70 slots/dia
+    const { data: allReservasQ } = await supabase
+      .from("reservas")
+      .select("hora, estado, tipo_cancha, duracion")
+      .gte("fecha", dateFrom)
+      .lte("fecha", dateTo)
+      .eq("centro", "Quilicura");
+    {
+      const totalQ = (4 * 7 + 3 * 14) * daysInRange; // 70 slots/dia
+      // Count occupied slots: Futbolito = 1 slot each, Padel = duracion/30 slots each
+      let slotsOcupados = 0;
+      for (const r of allReservasQ || []) {
+        if (r.estado === "cancelada" || r.estado === "no_show") continue;
+        const hora = r.hora?.substring(0, 5) ?? "00:00";
         const tipo = r.tipo_cancha === "Pádel" ? "Padel" : r.tipo_cancha;
-        const intervalo = tipo === "Padel" ? 30 : 60;
-        const duracion = r.duracion ?? intervalo;
-        const slotsNeeded = Math.max(1, Math.floor(duracion / intervalo));
-        const horaStart = r.hora?.substring(0, 5) ?? "";
-        const [hh, mm] = horaStart.split(":").map(Number);
-        const startMin = hh * 60 + mm;
-        for (let i = 0; i < slotsNeeded; i++) {
-          const totalMin = startMin + i * intervalo;
-          if (totalMin < 17 * 60) continue; // solo prime time
-          const sh = Math.floor(totalMin / 60).toString().padStart(2, "0");
-          const sm = (totalMin % 60).toString().padStart(2, "0");
-          occupiedKeys.add(`${r.fecha}|${tipo}|${sh}:${sm}|${normalizeCancha(r.cancha)}`);
+        if (tipo === "Padel") {
+          // Padel: contar sub-slots de 30min que caen en 17:00+
+          const intervalo = 30;
+          const duracion = r.duracion ?? 60;
+          const slotsNeeded = Math.max(1, Math.floor(duracion / intervalo));
+          const [hh, mm] = hora.split(":").map(Number);
+          const startMin = hh * 60 + mm;
+          for (let i = 0; i < slotsNeeded; i++) {
+            if (startMin + i * intervalo >= 17 * 60) slotsOcupados++;
+          }
+        } else {
+          // Futbolito: 1 reserva = 1 slot de 60min
+          if (hora >= "17:00") slotsOcupados++;
         }
       }
-      let reservados = 0;
-      for (const s of slotsQ) {
-        const key = `${s.fecha}|${s.tipo_cancha}|${s.hora?.substring(0, 5)}|${s.cancha}`;
-        if (occupiedKeys.has(key)) reservados++;
-      }
-      const total = slotsQ.length;
-      const disponibles = total - reservados;
-      const porcentaje = total > 0 ? Math.round((reservados / total) * 100) : 0;
-      setOcupacionQ({ centro: "Quilicura", reservados, disponibles, total, porcentaje });
+      const capped = Math.min(slotsOcupados, totalQ);
+      setOcupacionQ({
+        centro: "Quilicura",
+        reservados: capped,
+        disponibles: totalQ - capped,
+        total: totalQ,
+        porcentaje: totalQ > 0 ? Math.round((capped / totalQ) * 100) : 0,
+      });
     }
 
     // Mensajes in date range
@@ -299,79 +270,74 @@ export default function DashboardPage() {
     setLoadingProximas(false);
   }, [supabase]);
 
-  // --- Horarios muertos (in date range) — reconcilia con reservas ---
+  // --- Horarios muertos (in date range) — basado en reservas ---
   const fetchHorarios = useCallback(async () => {
     setLoadingHorarios(true);
-    const [slotsRes, reservasRes] = await Promise.all([
-      supabase
-        .from("slots")
-        .select("fecha, hora, cancha, estado, tipo_cancha, centro")
-        .gte("fecha", dateFrom)
-        .lte("fecha", dateTo)
-        .gte("hora", "17:00:00"),
-      supabase
-        .from("reservas")
-        .select("fecha, hora, cancha, duracion, tipo_cancha, centro")
-        .gte("fecha", dateFrom)
-        .lte("fecha", dateTo)
-        .gte("hora", "15:00:00") // captura spillovers de Padel
-        .not("estado", "in", '("cancelada","no_show")'),
-    ]);
+    const { data: reservasHorarios } = await supabase
+      .from("reservas")
+      .select("hora, estado, tipo_cancha, duracion")
+      .gte("fecha", dateFrom)
+      .lte("fecha", dateTo);
 
-    if (slotsRes.data) {
-      const slotsData = slotsRes.data;
-      const reservasData = reservasRes.data || [];
+    const daysInRange = Math.round(
+      (new Date(dateTo + "T12:00:00").getTime() - new Date(dateFrom + "T12:00:00").getTime()) / 86400000
+    ) + 1;
 
-      // Build set of occupied keys: fecha|centro|tipo_cancha|hora|cancha
-      const occupiedKeys = new Set<string>();
-      for (const s of slotsData) {
-        if (s.estado !== "disponible") {
-          occupiedKeys.add(`${s.fecha}|${s.centro}|${s.tipo_cancha}|${s.hora?.substring(0, 5)}|${s.cancha}`);
-        }
-      }
-      for (const r of reservasData) {
-        const tipo = r.tipo_cancha === "Pádel" ? "Padel" : r.tipo_cancha;
-        const intervalo = tipo === "Padel" ? 30 : 60;
-        const duracion = r.duracion ?? intervalo;
-        const slotsNeeded = Math.max(1, Math.floor(duracion / intervalo));
-        const horaStart = r.hora?.substring(0, 5) ?? "";
-        const [hh, mm] = horaStart.split(":").map(Number);
+    // Capacidad por hora (ambos centros combinados):
+    // LP Fut: 6 canchas por hora-completa, Q Fut: 4, Q Padel: 3 por media-hora
+    // Horas completas (17:00-23:00): 6+4 = 10 canchas/hora + 3 padel cada 30min
+    // Para simplificar: agrupar por HH:00 y sumar capacidad
+    const primeHours = ["17:00","18:00","19:00","20:00","21:00","22:00","23:00"];
+    const capacityPerHour: Record<string, number> = {};
+    for (const h of primeHours) {
+      // Futbolito: 6 LP + 4 Q = 10 por hora × dias
+      // Padel: 3 canchas × 2 sub-slots (HH:00 y HH:30) = 6 por hora × dias
+      capacityPerHour[h] = (10 + 6) * daysInRange;
+    }
+
+    // Contar reservas ocupadas por hora
+    const occupiedPerHour: Record<string, number> = {};
+    for (const h of primeHours) occupiedPerHour[h] = 0;
+
+    for (const r of reservasHorarios || []) {
+      if (r.estado === "cancelada" || r.estado === "no_show") continue;
+      const hora = r.hora?.substring(0, 5) ?? "00:00";
+      const tipo = r.tipo_cancha === "Pádel" ? "Padel" : r.tipo_cancha;
+
+      if (tipo === "Padel") {
+        const duracion = r.duracion ?? 60;
+        const slotsNeeded = Math.max(1, Math.floor(duracion / 30));
+        const [hh, mm] = hora.split(":").map(Number);
         const startMin = hh * 60 + mm;
         for (let i = 0; i < slotsNeeded; i++) {
-          const totalMin = startMin + i * intervalo;
+          const totalMin = startMin + i * 30;
           if (totalMin < 17 * 60) continue;
-          const sh = Math.floor(totalMin / 60).toString().padStart(2, "0");
-          const sm = (totalMin % 60).toString().padStart(2, "0");
-          occupiedKeys.add(`${r.fecha}|${r.centro}|${tipo}|${sh}:${sm}|${normalizeCancha(r.cancha)}`);
+          // Agrupar en hora completa (17:00, 18:00, etc.)
+          const hourKey = Math.floor(totalMin / 60).toString().padStart(2, "0") + ":00";
+          if (occupiedPerHour[hourKey] !== undefined) occupiedPerHour[hourKey]++;
+        }
+      } else {
+        if (hora >= "17:00") {
+          const hourKey = hora.substring(0, 2) + ":00";
+          if (occupiedPerHour[hourKey] !== undefined) occupiedPerHour[hourKey]++;
         }
       }
-
-      // Compute per-hora stats checking each slot against occupied set
-      const byHora = new Map<string, { total: number; libres: number }>();
-      for (const s of slotsData) {
-        const hora = s.hora?.substring(0, 5) ?? "";
-        if (!byHora.has(hora)) byHora.set(hora, { total: 0, libres: 0 });
-        const entry = byHora.get(hora)!;
-        entry.total++;
-        const key = `${s.fecha}|${s.centro}|${s.tipo_cancha}|${hora}|${s.cancha}`;
-        if (!occupiedKeys.has(key)) entry.libres++;
-      }
-
-      const sorted = Array.from(byHora.entries())
-        .map(([hora, stats]) => ({
-          hora,
-          libres: stats.libres,
-          total: stats.total,
-        }))
-        .sort((a, b) => {
-          const pctA = a.total > 0 ? a.libres / a.total : 0;
-          const pctB = b.total > 0 ? b.libres / b.total : 0;
-          return pctB - pctA;
-        })
-        .slice(0, 5);
-
-      setHorariosMuertos(sorted);
     }
+
+    const sorted = primeHours
+      .map((hora) => {
+        const total = capacityPerHour[hora];
+        const ocupados = Math.min(occupiedPerHour[hora], total);
+        return { hora, libres: total - ocupados, total };
+      })
+      .sort((a, b) => {
+        const pctA = a.total > 0 ? a.libres / a.total : 0;
+        const pctB = b.total > 0 ? b.libres / b.total : 0;
+        return pctB - pctA;
+      })
+      .slice(0, 5);
+
+    setHorariosMuertos(sorted);
     setLoadingHorarios(false);
   }, [supabase, dateFrom, dateTo]);
 
