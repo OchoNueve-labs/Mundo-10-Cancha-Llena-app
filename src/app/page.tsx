@@ -142,7 +142,7 @@ export default function DashboardPage() {
         .lte("fecha", dateTo)
         .eq("centro", "Lo Prado")
         .gte("hora", "17:00:00")
-        .in("estado", ["pendiente", "confirmada"]),
+        .not("estado", "in", '("cancelada","no_show")'),
     ]);
     if (slotsLPRes.data) {
       const slotsLP = slotsLPRes.data;
@@ -186,7 +186,7 @@ export default function DashboardPage() {
         .lte("fecha", dateTo)
         .eq("centro", "Quilicura")
         .gte("hora", "15:00:00") // captura spillovers de Padel hacia 17:00+
-        .in("estado", ["pendiente", "confirmada"]),
+        .not("estado", "in", '("cancelada","no_show")'),
     ]);
     if (slotsQRes.data) {
       const slotsQ = slotsQRes.data;
@@ -315,7 +315,7 @@ export default function DashboardPage() {
         .gte("fecha", dateFrom)
         .lte("fecha", dateTo)
         .gte("hora", "15:00:00") // captura spillovers de Padel
-        .in("estado", ["pendiente", "confirmada"]),
+        .not("estado", "in", '("cancelada","no_show")'),
     ]);
 
     if (slotsRes.data) {
