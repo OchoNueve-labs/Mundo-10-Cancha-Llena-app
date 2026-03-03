@@ -30,7 +30,7 @@ export interface Reserva {
   telefono_cliente: string | null;
   rut_cliente: string | null;
   email_cliente: string | null;
-  estado: "pendiente" | "confirmada" | "cancelada" | "completada" | "no_show";
+  estado: "pre_reserva" | "pendiente" | "confirmada" | "cancelada" | "completada" | "no_show";
   canal_origen: "bot" | "easycancha" | "telefono" | "presencial" | "dashboard" | null;
   codigo_easycancha: string | null;
   origen: string;

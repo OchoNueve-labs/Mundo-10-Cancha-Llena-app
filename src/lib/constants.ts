@@ -42,6 +42,7 @@ export type CentroName = keyof typeof CENTROS;
 export type TipoCancha = "Futbolito" | "Padel";
 
 export const ESTADO_RESERVA_COLORS: Record<string, string> = {
+  pre_reserva: "bg-purple-500/20 text-purple-400 border-purple-500/30",
   pendiente: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
   confirmada: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
   cancelada: "bg-red-500/20 text-red-400 border-red-500/30",

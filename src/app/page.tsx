@@ -261,7 +261,7 @@ export default function DashboardPage() {
       .select("*")
       .gte("fecha", today)
       .lte("fecha", in7days)
-      .in("estado", ["pendiente", "confirmada"])
+      .in("estado", ["pre_reserva", "pendiente", "confirmada"])
       .order("fecha", { ascending: true })
       .order("hora", { ascending: true })
       .limit(20);

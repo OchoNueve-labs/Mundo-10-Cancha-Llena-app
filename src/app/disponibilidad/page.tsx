@@ -218,7 +218,7 @@ export default function DisponibilidadPage() {
       .select("*")
       .eq("fecha", fecha)
       .eq("centro", centro)
-      .in("estado", ["pendiente", "confirmada"]);
+      .in("estado", ["pre_reserva", "pendiente", "confirmada"]);
 
     if (tipoCancha === "Padel") {
       reservasQuery = reservasQuery.in("tipo_cancha", ["Padel", "Pádel"]);

@@ -24,6 +24,7 @@ const ITEMS_PER_PAGE = 25;
 
 const ESTADOS = [
   "",
+  "pre_reserva",
   "pendiente",
   "confirmada",
   "cancelada",
@@ -350,7 +351,8 @@ export default function ReservasPage() {
                     </td>
                     <td className="px-3 py-2.5">
                       <div className="flex items-center justify-end gap-1">
-                        {reserva.estado === "pendiente" && (
+                        {(reserva.estado === "pre_reserva" ||
+                          reserva.estado === "pendiente") && (
                           <button
                             onClick={() => handleConfirmar(reserva)}
                             className="p-1.5 rounded-md text-emerald-400 hover:bg-emerald-500/20 transition-colors"
@@ -359,7 +361,8 @@ export default function ReservasPage() {
                             <Check className="h-4 w-4" />
                           </button>
                         )}
-                        {(reserva.estado === "pendiente" ||
+                        {(reserva.estado === "pre_reserva" ||
+                          reserva.estado === "pendiente" ||
                           reserva.estado === "confirmada") && (
                           <button
                             onClick={() => handleCancelar(reserva)}
