@@ -183,6 +183,25 @@ Se verificaron las 6 queries de WF3 que interactúan con la tabla `slots`:
 | **Dashboard** — Soporte visual pre_reserva | Desplegado |
 | **Dashboard** — Push a GitHub/Vercel** | Desplegado |
 
+## 6. Actualización del Manual de Usuario
+
+Se actualizó el manual de usuario (`docs/manual-usuario.md`) que se muestra en la ruta `/manual` del dashboard. El manual se lee directamente desde el archivo markdown, por lo que se actualiza automáticamente con cada deploy.
+
+### Cambios realizados
+
+| Sección | Cambio |
+|---------|--------|
+| **Sec. 3 — Dashboard** | Próximas reservas ahora menciona pre-reserva como estado posible |
+| **Sec. 4 — Disponibilidad** | Agregado color morado en tabla de colores de la grilla |
+| **Sec. 5 — Reservas** | Nuevo estado pre-reserva en filtros, tabla de estados y acciones (confirmar/cancelar) |
+| **Sec. 6 — Alertas** | Agregada subsección sobre alertas por Telegram |
+| **Sec. 7 — Pre-reservas (NUEVA)** | Sección completa explicando el flujo de pre-reserva, los 30 minutos, qué hacer cuando llega el comprobante, y que EasyCancha no se ve afectado |
+| **Sec. 11 — Referencia rápida** | Tablas de colores actualizadas con morado/pre-reserva. Tips nuevos sobre pre-reservas y Telegram |
+
+La numeración de secciones fue ajustada (7→8 Conversaciones, 8→9 Clientes, 9→10 Funciones generales, 10→11 Referencia rápida) para acomodar la nueva sección 7.
+
+---
+
 ## Flujo completo del sistema
 
 ```
