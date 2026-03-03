@@ -394,3 +394,60 @@ Al final de la barra lateral (en computador) o del menu (en celular), encontrara
 - Para crear una reserva rapida: ve a **Disponibilidad**, encuentra la celda verde que quieras, haz click, llena nombre y telefono, y listo
 - Las reservas **moradas** (pre-reserva) son del bot y estan esperando pago. Si llega el comprobante, confirmalas con el check verde. Si no llega, no te preocupes — el sistema las cancela automaticamente despues de 30 minutos
 - Las alertas llegan al grupo de **Telegram** automaticamente, no necesitas estar pendiente del dashboard todo el tiempo
+
+---
+
+## 12. IMPORTANTE: Responsabilidad sobre EasyCancha
+
+> **AVISO IMPORTANTE**
+>
+> El Sistema Cancha Llena opera de forma **independiente** a la plataforma EasyCancha. OchoNueve Labs **no tiene acceso, control ni administracion** sobre EasyCancha, ya que es una plataforma externa y ajena al desarrollo del sistema.
+>
+> El sistema Cancha Llena protege internamente contra duplicaciones: cuando el bot crea una pre-reserva, el slot queda bloqueado y EasyCancha no puede asignarlo. Sin embargo, **esta proteccion solo funciona en una direccion**. Si un cliente reserva a traves del bot y el encargado no bloquea manualmente el mismo horario en EasyCancha, otro cliente podria reservar el mismo slot desde EasyCancha, generando una duplicacion.
+
+### Responsabilidades del encargado respecto a EasyCancha
+
+Para evitar reservas duplicadas entre ambos sistemas, es **responsabilidad exclusiva del encargado** de Mundo 10 realizar las siguientes acciones en la plataforma EasyCancha:
+
+1. Cuando el bot genera una reserva (pre-reserva o confirmada), el encargado **debe bloquear manualmente** el mismo horario y cancha en EasyCancha para que ningun otro cliente pueda reservarlo por esa via
+2. Cuando una pre-reserva expira automaticamente (por falta de pago en 30 minutos), el encargado **debe liberar manualmente** el bloqueo correspondiente en EasyCancha
+3. Es recomendable que el encargado revise las alertas de Telegram con regularidad para mantenerse sincronizado entre ambos sistemas
+
+---
+
+## 13. Validacion de comprobantes de pago
+
+> **AVISO IMPORTANTE**
+>
+> El sistema **no valida automaticamente** la autenticidad de los comprobantes de pago enviados por los clientes. Es **responsabilidad exclusiva del encargado** verificar que cada comprobante sea legitimo antes de confirmar una reserva en el dashboard.
+>
+> OchoNueve Labs **no se hace responsable** por reservas confirmadas en base a comprobantes de pago falsos, adulterados o que no correspondan al monto o cliente indicado.
+
+### Recomendaciones para verificar comprobantes
+
+Antes de confirmar una pre-reserva, el encargado debe verificar lo siguiente:
+
+1. Que el **monto** del comprobante coincida con el abono requerido (50% del valor de la reserva)
+2. Que la **fecha y hora** de la transferencia sean recientes y coherentes con el momento de la reserva
+3. Que el **nombre o cuenta de origen** corresponda al cliente que realizo la reserva
+4. Que el **numero de operacion** o codigo de transferencia sea valido y no haya sido utilizado anteriormente
+5. En caso de duda, **no confirmar la reserva** hasta verificar el deposito directamente en la cuenta bancaria del centro
+6. **Guardar los comprobantes** recibidos como respaldo ante posibles reclamos
+
+---
+
+## 14. Deslinde de responsabilidad
+
+> OchoNueve Labs entrega el Sistema Cancha Llena en su estado actual y **no se responsabiliza** por:
+>
+> - Reservas duplicadas originadas por la falta de bloqueo manual en EasyCancha por parte del encargado
+> - Reservas confirmadas en base a comprobantes de pago falsos, adulterados o no verificados por el encargado
+> - Perdidas economicas derivadas del uso incorrecto del sistema o del incumplimiento de los procedimientos descritos en este manual
+> - Acciones u omisiones del personal encargado de operar el sistema
+> - Problemas de conectividad, caidas de servicio de terceros (EasyCancha, WhatsApp, Telegram) o factores externos fuera del control del sistema
+>
+> El Sistema Cancha Llena cumple con todas las protecciones tecnicas dentro de su alcance, pero **no puede sustituir** el criterio, la verificacion y la diligencia humana en la operacion diaria.
+>
+> Cualquier integracion directa con la API de EasyCancha (si existiese) seria un **desarrollo adicional** no contemplado en el alcance actual del proyecto.
+>
+> El correcto funcionamiento del sistema depende de la operacion adecuada por parte del personal de Mundo 10, siguiendo los procedimientos establecidos en este manual.

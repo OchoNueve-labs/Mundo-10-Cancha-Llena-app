@@ -56,6 +56,11 @@ const components: Components = {
       {children}
     </td>
   ),
+  blockquote: ({ children }) => (
+    <blockquote className="mb-4 border-l-4 border-red-500 bg-red-500/10 rounded-r-lg px-4 py-3 text-sm text-muted-foreground [&>p]:mb-2 [&>p:last-child]:mb-0">
+      {children}
+    </blockquote>
+  ),
   code: ({ children }) => (
     <code className="rounded bg-muted px-1.5 py-0.5 text-xs font-mono text-foreground">
       {children}
