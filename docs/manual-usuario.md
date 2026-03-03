@@ -78,7 +78,7 @@ Muestra las 5 horas del dia con mas canchas libres. Util para saber que horarios
 Lista de las reservas de los proximos 7 dias. Cada una muestra:
 - La hora y fecha
 - El nombre del cliente
-- El estado (pendiente o confirmada)
+- El estado (pre-reserva, pendiente o confirmada)
 - El centro y cancha
 
 Si el cliente tiene telefono, puedes tocar el icono de **WhatsApp** para abrirle una conversacion directa.
@@ -111,6 +111,7 @@ Los colores de cada celda te dicen el estado:
 |-------|-------------|
 | **Verde** ("Libre") | La cancha esta disponible en ese horario |
 | **Rojo** (muestra un nombre) | La cancha esta reservada por ese cliente |
+| **Morado** (muestra un nombre) | La cancha tiene una pre-reserva pendiente de pago (se libera automaticamente si no se paga en 30 minutos) |
 | **Gris** ("Bloqueado") | La cancha no esta disponible (bloqueada manualmente) |
 
 ### Resumen de ocupacion
@@ -166,7 +167,7 @@ Vista de tabla con todas las reservas. Ideal para buscar, confirmar o cancelar r
 
 - **Fecha**: Filtra las reservas de un dia especifico
 - **Centro**: Todos, Lo Prado o Quilicura
-- **Estado**: Todos, Pendiente, Confirmada, Cancelada, Completada, No show
+- **Estado**: Todos, Pre-reserva, Pendiente, Confirmada, Cancelada, Completada, No show
 - **Canal**: Todos, Bot, EasyCancha, Telefono, Presencial, Dashboard
 
 A la derecha de los filtros veras el total de reservas que coinciden.
@@ -202,6 +203,7 @@ Veras un mensaje de confirmacion y la reserva aparecera en la tabla.
 
 | Estado | Color | Significado |
 |--------|-------|-------------|
+| Pre-reserva | Morado | El cliente reservo por el bot pero aun no ha pagado. Tiene 30 minutos para enviar comprobante de pago. Si no paga, se cancela automaticamente |
 | Pendiente | Amarillo | La reserva esta registrada pero falta confirmacion |
 | Confirmada | Verde | La reserva esta confirmada y activa |
 | Cancelada | Rojo | La reserva fue cancelada |
@@ -212,8 +214,8 @@ Veras un mensaje de confirmacion y la reserva aparecera en la tabla.
 
 En la columna "Acciones" veras estos botones segun el estado de la reserva:
 
-- **Check verde** (Confirmar): Aparece solo para reservas pendientes. Un click la confirma inmediatamente.
-- **X roja** (Cancelar): Aparece para reservas pendientes y confirmadas. Al hacer click, te pedira confirmacion. Si confirmas, la reserva se cancela y el horario queda libre.
+- **Check verde** (Confirmar): Aparece para pre-reservas y pendientes. Un click la confirma inmediatamente. Usar cuando el cliente envia el comprobante de pago.
+- **X roja** (Cancelar): Aparece para pre-reservas, pendientes y confirmadas. Al hacer click, te pedira confirmacion. Si confirmas, la reserva se cancela y el horario queda libre.
 - **Icono verde** (WhatsApp): Aparece si el cliente tiene telefono. Un click abre WhatsApp con el numero del cliente.
 
 ### Paginacion
@@ -251,9 +253,43 @@ Aqui llegan las notificaciones del sistema: nuevas reservas, errores de sincroni
 
 El punto azul junto a una alerta indica que todavia no ha sido leida.
 
+### Alertas por Telegram
+
+Todas las alertas del sistema se envian automaticamente al grupo de Telegram **"Alertas Mundo 10"**. No necesitas estar revisando el dashboard para enterarte de lo que pasa: las notificaciones llegan al celular en tiempo real.
+
+Las alertas que requieren accion urgente (EasyCancha manual, errores, escalamientos) llegan con un formato destacado para que las identifiques rapidamente.
+
 ---
 
-## 7. Conversaciones (Mensajes con clientes)
+## 7. Pre-reservas (Reservas del bot pendientes de pago)
+
+Cuando un cliente hace una reserva a traves del bot (WhatsApp, Messenger, etc.), la reserva se crea como **pre-reserva**. Esto significa que el horario queda bloqueado temporalmente pero el cliente aun no ha pagado.
+
+### Como funciona
+
+1. El cliente reserva por el bot → se crea una **pre-reserva** (morado en el dashboard)
+2. El horario queda **bloqueado** — ningun otro cliente puede tomar ese horario, ni desde el bot ni desde EasyCancha
+3. El cliente tiene **30 minutos** para enviar el comprobante de pago (abono 50% por transferencia)
+4. Si paga a tiempo → la secretaria confirma la reserva desde el dashboard (boton check verde)
+5. Si **no paga en 30 minutos** → la reserva se cancela automaticamente y el horario se libera
+
+### Que hacer cuando llega una pre-reserva
+
+1. Recibes una alerta en Telegram indicando la nueva reserva
+2. En el dashboard, la reserva aparece en **morado** con estado "pre_reserva"
+3. Espera a que el cliente envie el comprobante de pago
+4. Cuando recibes el comprobante, ve a **Reservas**, busca la pre-reserva y haz click en el **check verde** para confirmarla
+5. Si el cliente no paga, no necesitas hacer nada — el sistema la cancela solo despues de 30 minutos
+
+### Importante
+
+- Las reservas de **EasyCancha** llegan como **confirmadas** directamente (ya estan pagadas) y no pasan por este proceso
+- Solo las reservas del **bot** pasan por pre-reserva
+- Mientras una pre-reserva esta activa, el horario esta protegido — no se puede duplicar
+
+---
+
+## 8. Conversaciones (Mensajes con clientes)
 
 Vista de mensajes organizados por cliente. Se divide en dos paneles:
 
@@ -273,7 +309,7 @@ Vista de mensajes organizados por cliente. Se divide en dos paneles:
 
 ---
 
-## 8. Clientes (Base de datos)
+## 9. Clientes (Base de datos)
 
 Lista de todos los clientes registrados en el sistema.
 
@@ -299,7 +335,7 @@ Si el cliente tiene telefono, usa el boton de WhatsApp en la fila para contactar
 
 ---
 
-## 9. Funciones generales
+## 10. Funciones generales
 
 ### Modo oscuro / claro
 
@@ -319,12 +355,13 @@ Al final de la barra lateral (en computador) o del menu (en celular), encontrara
 
 ---
 
-## 10. Referencia rapida
+## 11. Referencia rapida
 
 ### Colores de estado de reservas
 
 | Color | Estado | Significado |
 |-------|--------|-------------|
+| Morado | Pre-reserva | Reserva del bot pendiente de pago (30 min para pagar) |
 | Amarillo | Pendiente | Esperando confirmacion |
 | Verde | Confirmada | Reserva activa |
 | Rojo | Cancelada | Fue cancelada |
@@ -337,6 +374,7 @@ Al final de la barra lateral (en computador) o del menu (en celular), encontrara
 |-------|-------------|
 | Verde | Cancha libre — haz click para reservar |
 | Rojo | Cancha reservada — haz click para ver detalles |
+| Morado | Pre-reserva pendiente de pago — se libera sola en 30 min si no se paga |
 | Gris | Cancha bloqueada — no disponible |
 
 ### Centros y canchas disponibles
@@ -354,3 +392,5 @@ Al final de la barra lateral (en computador) o del menu (en celular), encontrara
 - Si ves muchas alertas pendientes, revisalas en **Alertas** y marcalas como leidas o resueltas
 - Si quieres saber que horarios tienen menor demanda, revisa el widget "Horarios con menor ocupacion" en el Dashboard
 - Para crear una reserva rapida: ve a **Disponibilidad**, encuentra la celda verde que quieras, haz click, llena nombre y telefono, y listo
+- Las reservas **moradas** (pre-reserva) son del bot y estan esperando pago. Si llega el comprobante, confirmalas con el check verde. Si no llega, no te preocupes — el sistema las cancela automaticamente despues de 30 minutos
+- Las alertas llegan al grupo de **Telegram** automaticamente, no necesitas estar pendiente del dashboard todo el tiempo
