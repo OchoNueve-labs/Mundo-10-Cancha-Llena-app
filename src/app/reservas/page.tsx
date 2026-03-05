@@ -483,10 +483,10 @@ export default function ReservasPage() {
                                       setEditingNotasId(reserva.id);
                                       setEditingNotasValue(reserva.notas || "");
                                     }}
-                                    className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                                    className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                                     title="Editar notas"
                                   >
-                                    <Pencil className="h-3.5 w-3.5" />
+                                    <Pencil className="h-5 w-5" />
                                   </button>
                                 )}
                               </div>
