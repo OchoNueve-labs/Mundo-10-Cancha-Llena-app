@@ -12,6 +12,8 @@ import {
   X,
   ExternalLink,
   Plus,
+  Pencil,
+  Save,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { AppShell } from "@/components/layout/AppShell";
@@ -64,6 +66,10 @@ export default function ReservasPage() {
 
   // Expanded row
   const [expandedId, setExpandedId] = useState<number | null>(null);
+
+  // Inline notas editing
+  const [editingNotasId, setEditingNotasId] = useState<number | null>(null);
+  const [editingNotasValue, setEditingNotasValue] = useState("");
 
   // Data
   const [reservas, setReservas] = useState<Reserva[]>([]);
@@ -168,6 +174,33 @@ export default function ReservasPage() {
         updated_at: new Date().toISOString(),
       })
       .eq("reserva_id", String(reserva.id));
+  };
+
+  const handleSaveNotas = async (reservaId: number) => {
+    const newNotas = editingNotasValue.trim() || null;
+
+    // Optimistic update
+    setReservas((prev) =>
+      prev.map((r) =>
+        r.id === reservaId ? { ...r, notas: newNotas } : r
+      )
+    );
+    const oldNotas = reservas.find((r) => r.id === reservaId)?.notas;
+    setEditingNotasId(null);
+
+    const { error } = await supabase
+      .from("reservas")
+      .update({ notas: newNotas })
+      .eq("id", reservaId);
+
+    if (error) {
+      // Revert on error
+      setReservas((prev) =>
+        prev.map((r) =>
+          r.id === reservaId ? { ...r, notas: oldNotas ?? null } : r
+        )
+      );
+    }
   };
 
   return (
@@ -440,12 +473,55 @@ export default function ReservasPage() {
                                 </div>
                               )}
                             </div>
-                            {reserva.notas && (
-                              <div className="mt-3 p-3 rounded-lg bg-muted/50 border border-border">
-                                <span className="text-xs text-muted-foreground block mb-1">Notas</span>
-                                <p className="text-sm text-foreground whitespace-pre-wrap">{reserva.notas}</p>
+                            <div className="mt-3 p-3 rounded-lg bg-muted/50 border border-border">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs text-muted-foreground">Notas</span>
+                                {editingNotasId !== reserva.id && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setEditingNotasId(reserva.id);
+                                      setEditingNotasValue(reserva.notas || "");
+                                    }}
+                                    className="p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                                    title="Editar notas"
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </button>
+                                )}
                               </div>
-                            )}
+                              {editingNotasId === reserva.id ? (
+                                <div onClick={(e) => e.stopPropagation()}>
+                                  <textarea
+                                    value={editingNotasValue}
+                                    onChange={(e) => setEditingNotasValue(e.target.value)}
+                                    rows={3}
+                                    className="w-full px-2 py-1.5 bg-background border border-border rounded-md text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                                    placeholder="Agregar notas..."
+                                    autoFocus
+                                  />
+                                  <div className="flex items-center gap-1.5 mt-1.5">
+                                    <button
+                                      onClick={() => handleSaveNotas(reserva.id)}
+                                      className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+                                    >
+                                      <Save className="h-3 w-3" />
+                                      Guardar
+                                    </button>
+                                    <button
+                                      onClick={() => setEditingNotasId(null)}
+                                      className="flex items-center gap-1 px-2.5 py-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent text-xs transition-colors"
+                                    >
+                                      Cancelar
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="text-sm text-foreground whitespace-pre-wrap">
+                                  {reserva.notas || <span className="text-muted-foreground italic">Sin notas</span>}
+                                </p>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       )}
