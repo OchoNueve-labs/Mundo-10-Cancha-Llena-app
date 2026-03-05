@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   BookOpen,
   Search,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   RefreshCw,
@@ -60,6 +61,9 @@ export default function ReservasPage() {
 
   // Dialog
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Expanded row
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   // Data
   const [reservas, setReservas] = useState<Reserva[]>([]);
@@ -283,110 +287,171 @@ export default function ReservasPage() {
                   <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border">
                     Canal
                   </th>
-                  <th className="px-3 py-2.5 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border">
-                    Notas
-                  </th>
                   <th className="px-3 py-2.5 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider border-b border-border">
                     Acciones
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {reservas.map((reserva) => (
-                  <tr
-                    key={reserva.id}
-                    className="border-b border-border/50 hover:bg-accent/30 transition-colors"
-                  >
-                    <td className="px-3 py-2.5 text-sm font-mono text-foreground">
-                      {reserva.hora?.substring(0, 5) || "—"}
-                      {reserva.duracion && reserva.duracion > 60 && (
-                        <span className="ml-1.5 text-xs text-muted-foreground font-sans">
-                          {reserva.duracion}min
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <div>
-                        <p className="text-sm font-medium text-foreground">
-                          {reserva.nombre_cliente || "Sin nombre"}
-                        </p>
-                        <p className="text-xs text-muted-foreground font-mono">
-                          {reserva.telefono_cliente || "—"}
-                        </p>
-                        {reserva.rut_cliente && (
-                          <p className="text-xs text-muted-foreground">RUT: {reserva.rut_cliente}</p>
-                        )}
-                        {reserva.email_cliente && (
-                          <p className="text-xs text-muted-foreground truncate max-w-[180px]">{reserva.email_cliente}</p>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-3 py-2.5 text-sm text-muted-foreground">
-                      {reserva.centro || "—"}
-                    </td>
-                    <td className="px-3 py-2.5 text-sm text-muted-foreground">
-                      <span className="text-xs text-muted-foreground/60">
-                        {reserva.tipo_cancha ? `${reserva.tipo_cancha} ` : ""}
-                      </span>
-                      {reserva.cancha || "—"}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <span
+                {reservas.map((reserva) => {
+                  const isExpanded = expandedId === reserva.id;
+                  return (
+                    <React.Fragment key={reserva.id}>
+                      <tr
+                        onClick={() => setExpandedId(isExpanded ? null : reserva.id)}
                         className={cn(
-                          "px-2 py-0.5 rounded-full text-xs font-medium border",
-                          ESTADO_RESERVA_COLORS[reserva.estado] ||
-                            "bg-muted text-muted-foreground border-border"
+                          "border-b border-border/50 hover:bg-accent/30 transition-colors cursor-pointer",
+                          isExpanded && "bg-accent/20"
                         )}
                       >
-                        {reserva.estado}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2.5 text-sm text-muted-foreground capitalize">
-                      {reserva.canal_origen || "—"}
-                    </td>
-                    <td className="px-3 py-2.5 text-sm text-muted-foreground max-w-[200px]">
-                      {reserva.notas ? (
-                        <span className="truncate block" title={reserva.notas}>{reserva.notas}</span>
-                      ) : "—"}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <div className="flex items-center justify-end gap-1">
-                        {(reserva.estado === "pre_reserva" ||
-                          reserva.estado === "pendiente") && (
-                          <button
-                            onClick={() => handleConfirmar(reserva)}
-                            className="p-1.5 rounded-md text-emerald-400 hover:bg-emerald-500/20 transition-colors"
-                            title="Confirmar"
+                        <td className="px-3 py-2.5 text-sm font-mono text-foreground">
+                          <div className="flex items-center gap-1.5">
+                            <ChevronDown className={cn(
+                              "h-3.5 w-3.5 text-muted-foreground transition-transform shrink-0",
+                              isExpanded && "rotate-180"
+                            )} />
+                            <span>
+                              {reserva.hora?.substring(0, 5) || "—"}
+                              {reserva.duracion && reserva.duracion > 60 && (
+                                <span className="ml-1.5 text-xs text-muted-foreground font-sans">
+                                  {reserva.duracion}min
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <div>
+                            <p className="text-sm font-medium text-foreground">
+                              {reserva.nombre_cliente || "Sin nombre"}
+                            </p>
+                            <p className="text-xs text-muted-foreground font-mono">
+                              {reserva.telefono_cliente || "—"}
+                            </p>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5 text-sm text-muted-foreground">
+                          {reserva.centro || "—"}
+                        </td>
+                        <td className="px-3 py-2.5 text-sm text-muted-foreground">
+                          <span className="text-xs text-muted-foreground/60">
+                            {reserva.tipo_cancha ? `${reserva.tipo_cancha} ` : ""}
+                          </span>
+                          {reserva.cancha || "—"}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <span
+                            className={cn(
+                              "px-2 py-0.5 rounded-full text-xs font-medium border",
+                              ESTADO_RESERVA_COLORS[reserva.estado] ||
+                                "bg-muted text-muted-foreground border-border"
+                            )}
                           >
-                            <Check className="h-4 w-4" />
-                          </button>
-                        )}
-                        {(reserva.estado === "pre_reserva" ||
-                          reserva.estado === "pendiente" ||
-                          reserva.estado === "confirmada") && (
-                          <button
-                            onClick={() => handleCancelar(reserva)}
-                            className="p-1.5 rounded-md text-red-400 hover:bg-red-500/20 transition-colors"
-                            title="Cancelar"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        )}
-                        {reserva.telefono_cliente && (
-                          <a
-                            href={getWhatsAppLink(reserva.telefono_cliente)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-1.5 rounded-md text-green-400 hover:bg-green-500/20 transition-colors"
-                            title="WhatsApp"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </a>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                            {reserva.estado}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2.5 text-sm text-muted-foreground capitalize">
+                          {reserva.canal_origen || "—"}
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <div className="flex items-center justify-end gap-1">
+                            {(reserva.estado === "pre_reserva" ||
+                              reserva.estado === "pendiente") && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleConfirmar(reserva); }}
+                                className="p-1.5 rounded-md text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+                                title="Confirmar"
+                              >
+                                <Check className="h-4 w-4" />
+                              </button>
+                            )}
+                            {(reserva.estado === "pre_reserva" ||
+                              reserva.estado === "pendiente" ||
+                              reserva.estado === "confirmada") && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleCancelar(reserva); }}
+                                className="p-1.5 rounded-md text-red-400 hover:bg-red-500/20 transition-colors"
+                                title="Cancelar"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            )}
+                            {reserva.telefono_cliente && (
+                              <a
+                                href={getWhatsAppLink(reserva.telefono_cliente)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                                className="p-1.5 rounded-md text-green-400 hover:bg-green-500/20 transition-colors"
+                                title="WhatsApp"
+                              >
+                                <ExternalLink className="h-4 w-4" />
+                              </a>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                      {isExpanded && (
+                        <tr className="border-b border-border/50">
+                          <td colSpan={7} className="px-3 py-3 bg-accent/10">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                              <div>
+                                <span className="text-xs text-muted-foreground block">Fecha</span>
+                                <span className="text-foreground">{reserva.fecha || "—"}</span>
+                              </div>
+                              <div>
+                                <span className="text-xs text-muted-foreground block">Hora</span>
+                                <span className="text-foreground font-mono">{reserva.hora?.substring(0, 5) || "—"}</span>
+                              </div>
+                              <div>
+                                <span className="text-xs text-muted-foreground block">Duracion</span>
+                                <span className="text-foreground">{reserva.duracion ? `${reserva.duracion} min` : "60 min"}</span>
+                              </div>
+                              <div>
+                                <span className="text-xs text-muted-foreground block">Centro</span>
+                                <span className="text-foreground">{reserva.centro || "—"}</span>
+                              </div>
+                              <div>
+                                <span className="text-xs text-muted-foreground block">Cancha</span>
+                                <span className="text-foreground">{reserva.tipo_cancha ? `${reserva.tipo_cancha} - ` : ""}{reserva.cancha || "—"}</span>
+                              </div>
+                              <div>
+                                <span className="text-xs text-muted-foreground block">Canal</span>
+                                <span className="text-foreground capitalize">{reserva.canal_origen || "—"}</span>
+                              </div>
+                              <div>
+                                <span className="text-xs text-muted-foreground block">Cliente</span>
+                                <span className="text-foreground">{reserva.nombre_cliente || "Sin nombre"}</span>
+                              </div>
+                              <div>
+                                <span className="text-xs text-muted-foreground block">Telefono</span>
+                                <span className="text-foreground font-mono">{reserva.telefono_cliente || "—"}</span>
+                              </div>
+                              {reserva.rut_cliente && (
+                                <div>
+                                  <span className="text-xs text-muted-foreground block">RUT</span>
+                                  <span className="text-foreground">{reserva.rut_cliente}</span>
+                                </div>
+                              )}
+                              {reserva.email_cliente && (
+                                <div>
+                                  <span className="text-xs text-muted-foreground block">Email</span>
+                                  <span className="text-foreground">{reserva.email_cliente}</span>
+                                </div>
+                              )}
+                            </div>
+                            {reserva.notas && (
+                              <div className="mt-3 p-3 rounded-lg bg-muted/50 border border-border">
+                                <span className="text-xs text-muted-foreground block mb-1">Notas</span>
+                                <p className="text-sm text-foreground whitespace-pre-wrap">{reserva.notas}</p>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
               </tbody>
             </table>
           </div>
