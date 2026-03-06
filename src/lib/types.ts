@@ -73,7 +73,7 @@ export interface MensajeRaw {
 
 export interface Alerta {
   id: number;
-  tipo: "reserva" | "easycancha_sync" | "easycancha_manual" | "easycancha_error" | "escalamiento" | "error";
+  tipo: "reserva" | "easycancha_sync" | "easycancha_manual" | "easycancha_error" | "escalamiento" | "pago_pendiente" | "error";
   reserva_id: number | null;
   mensaje: string | null;
   canal: string | null;

@@ -25,6 +25,7 @@ const TIPOS = [
   "easycancha_error",
   "escalamiento",
   "escalamietno", // typo in existing n8n data
+  "pago_pendiente",
   "error",
 ] as const;
 

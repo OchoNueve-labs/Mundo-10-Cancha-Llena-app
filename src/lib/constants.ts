@@ -56,6 +56,7 @@ export const ALERTA_TIPO_COLORS: Record<string, string> = {
   easycancha_manual: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30",
   easycancha_error: "bg-red-500/20 text-red-400 border-red-500/30",
   escalamiento: "bg-orange-500/20 text-orange-400 border-orange-500/30",
+  pago_pendiente: "bg-red-500/20 text-red-400 border-red-500/30",
   error: "bg-slate-800/80 text-slate-300 border-slate-600/30",
 };
 
